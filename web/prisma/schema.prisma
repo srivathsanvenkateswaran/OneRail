@@ -1,0 +1,193 @@
+// OneRail — Prisma Schema
+// Source of truth: gemini.md v0.1 CONFIRMED ✅
+// Do not edit models here without first updating gemini.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ZONE
+// ─────────────────────────────────────────────
+model Zone {
+  zone_code    String    @id // e.g. "SR", "NR", "CR"
+  zone_name    String
+  headquarters String
+  stations     Station[]
+  trains       Train[]
+}
+
+// ─────────────────────────────────────────────
+// STATION
+// ─────────────────────────────────────────────
+model Station {
+  station_code     String  @id // e.g. "MAS", "MS", "CBE"
+  station_name     String
+  state            String?
+  zone_code        String?
+  zone             Zone?   @relation(fields: [zone_code], references: [zone_code])
+  latitude         Float?
+  longitude        Float?
+  elevation_m      Float?
+  // Category: A1 (major terminals) → F (halt stations)
+  station_category String?
+  num_platforms    Int?
+
+  // Amenities (default false — scraper fills these in)
+  has_retiring_room Boolean @default(false)
+  has_waiting_room  Boolean @default(false)
+  has_food_plaza    Boolean @default(false)
+  has_wifi          Boolean @default(false)
+
+  is_junction Boolean @default(false)
+  is_terminus Boolean @default(false)
+
+  stops          TrainStop[]
+  track_from     TrackSegment[] @relation("TrackFrom")
+  track_to       TrackSegment[] @relation("TrackTo")
+  source_trains  Train[]        @relation("SourceStation")
+  dest_trains    Train[]        @relation("DestStation")
+}
+
+// ─────────────────────────────────────────────
+// TRAIN
+// ─────────────────────────────────────────────
+model Train {
+  train_number             String  @id // e.g. "12658"
+  train_name               String
+  // Type enum (stored as string for flexibility):
+  // Rajdhani, Shatabdi, Vande Bharat, Duronto, Garib Rath,
+  // Superfast Express, Express, Passenger, EMU, MEMU, DEMU,
+  // Heritage, Special (obscure — hidden by default in UI)
+  train_type               String
+
+  source_station_code      String
+  destination_station_code String
+  source_station           Station  @relation("SourceStation", fields: [source_station_code], references: [station_code])
+  destination_station      Station  @relation("DestStation", fields: [destination_station_code], references: [station_code])
+
+  total_distance_km        Float?
+  total_duration_mins      Int?
+
+  // run_days bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64
+  // e.g. runs Mon+Fri = 17, runs daily = 127
+  run_days                 Int      @default(127)
+
+  zone_code                String?
+  zone                     Zone?    @relation(fields: [zone_code], references: [zone_code])
+
+  has_pantry               Boolean  @default(false)
+  // Electric, Diesel, Hybrid, Steam (Steam = obscure, hidden by default)
+  locomotive_type          String?
+  classes_available        String[] // ["1A","2A","3A","SL","GN"]
+
+  stops                    TrainStop[]
+  coach_configs            CoachConfig[]
+  rake_memberships         RakeMember[]
+
+  rake_share_text          String?
+}
+
+// ─────────────────────────────────────────────
+// TRAIN STOP — The central table
+// ─────────────────────────────────────────────
+model TrainStop {
+  id           Int     @id @default(autoincrement())
+  train_number String
+  station_code String
+
+  // Position in the journey (1 = source, N = destination)
+  stop_sequence Int
+
+  // Times stored as minutes from midnight of Day 1
+  // e.g. 23:45 = 1425, 01:20 on day 2 = 1520 (carry over)
+  // Use day_number to distinguish actual calendar day
+  arrival_time_mins       Int?
+  departure_time_mins     Int?
+  halt_duration_mins      Int?
+
+  // day_number: 1 = departs on scheduled day, 2 = next day, etc.
+  day_number              Int     @default(1)
+
+  distance_from_source_km Float?
+  platform_number         String?
+
+  // Technical halts: train stops but passengers cannot board/alight
+  // Hidden by default in UI (gemini.md rule 5a)
+  is_technical_halt       Boolean @default(false)
+
+  xing                    String?
+  intermediate_stations   Int?
+
+  train   Train   @relation(fields: [train_number], references: [train_number])
+  station Station @relation(fields: [station_code], references: [station_code])
+
+  @@unique([train_number, stop_sequence])
+  @@index([train_number])
+  @@index([station_code])
+  @@index([train_number, station_code])
+}
+
+// ─────────────────────────────────────────────
+// COACH CONFIG — Coach composition per train
+// ─────────────────────────────────────────────
+model CoachConfig {
+  id                Int    @id @default(autoincrement())
+  train_number      String
+  class_code        String // 1A, 2A, 3A, SL, GN, CC, EC, FC
+  coach_label       String // A1, S5, B3, GS etc.
+  position_in_train Int    // 1 = loco end
+  num_seats         Int?
+
+  train Train @relation(fields: [train_number], references: [train_number])
+
+  @@index([train_number])
+}
+
+// ─────────────────────────────────────────────
+// RAKE SHARING
+// ─────────────────────────────────────────────
+model RakeGroup {
+  group_id Int          @id @default(autoincrement())
+  notes    String?
+  members  RakeMember[]
+}
+
+model RakeMember {
+  id                Int     @id @default(autoincrement())
+  group_id          Int
+  train_number      String
+  sequence_in_group Int     // order in which trains use the rake
+
+  group RakeGroup @relation(fields: [group_id], references: [group_id])
+  train Train     @relation(fields: [train_number], references: [train_number])
+
+  @@unique([group_id, train_number])
+}
+
+// ─────────────────────────────────────────────
+// TRACK SEGMENT — For map rendering
+// ─────────────────────────────────────────────
+model TrackSegment {
+  id                Int     @id @default(autoincrement())
+  from_station_code String
+  to_station_code   String
+  distance_km       Float?
+  // Single, Double, Multi
+  track_type        String?
+  electrified       Boolean @default(false)
+  // BG (Broad Gauge), MG (Metre Gauge), NG (Narrow Gauge)
+  gauge             String  @default("BG")
+
+  from_station Station @relation("TrackFrom", fields: [from_station_code], references: [station_code])
+  to_station   Station @relation("TrackTo", fields: [to_station_code], references: [station_code])
+
+  @@unique([from_station_code, to_station_code])
+  @@index([from_station_code])
+  @@index([to_station_code])
+}

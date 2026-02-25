@@ -1,0 +1,275 @@
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.route {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    flex-wrap: wrap;
+}
+
+.routeArrow {
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+}
+
+.dateLabel {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.count {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+/* ── Train card ────────────────────────────────────────── */
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.card {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.4);
+}
+
+.card:hover {
+    border-color: rgba(224, 123, 57, 0.5);
+    box-shadow: 0 8px 30px -5px rgba(224, 123, 57, 0.2);
+    transform: translateY(-2px);
+    background: rgba(30, 30, 30, 0.8);
+}
+
+/* Times block */
+.times {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.timeBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.time {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.stationCode {
+    font-size: 0.8rem;
+    font-weight: 800;
+    font-family: inherit;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.nextDay {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    margin-top: 4px;
+}
+
+.duration {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    min-width: 80px;
+}
+
+.durationLine {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--border-accent), transparent);
+    border-radius: 2px;
+}
+
+.durationLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* Info block */
+.info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.trainName {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.trainNumber {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--accent);
+    background: rgba(224, 123, 57, 0.15);
+    padding: 4px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+}
+
+.meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Classes block */
+.classes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+    justify-content: flex-end;
+    max-width: 220px;
+}
+
+/* Enhance class badges in the context of dark/glowing UI */
+.classes :global(.badge) {
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.classes :global(.class-1A) {
+    background: rgba(146, 64, 14, 0.2);
+    color: #fcd34d;
+    border-color: rgba(252, 211, 77, 0.3);
+}
+
+.classes :global(.class-2A) {
+    background: rgba(30, 58, 138, 0.2);
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.3);
+}
+
+.classes :global(.class-3A) {
+    background: rgba(6, 95, 70, 0.2);
+    color: #6ee7b7;
+    border-color: rgba(110, 231, 183, 0.3);
+}
+
+.classes :global(.class-SL) {
+    background: rgba(76, 29, 149, 0.2);
+    color: #c4b5fd;
+    border-color: rgba(196, 181, 253, 0.3);
+}
+
+.classes :global(.class-CC) {
+    background: rgba(131, 24, 67, 0.2);
+    color: #f9a8d4;
+    border-color: rgba(249, 168, 212, 0.3);
+}
+
+.classes :global(.class-EC) {
+    background: rgba(124, 45, 18, 0.2);
+    color: #fdba74;
+    border-color: rgba(253, 186, 116, 0.3);
+}
+
+.arrow {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.card:hover .arrow {
+    transform: translateX(4px);
+    color: var(--accent);
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 800px) {
+    .card {
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        padding: 1.25rem;
+    }
+
+    .info {
+        flex-basis: 100%;
+        order: -1;
+    }
+
+    .classes {
+        max-width: 100%;
+        justify-content: flex-start;
+    }
+
+    .arrow {
+        display: none;
+    }
+}
