@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 const { Client } = pg;
-const SILVER_DIR = path.resolve('.tmp/silver/trains');
+const SILVER_DIR = path.resolve('../.tmp/silver/trains');
 
 async function main() {
     const client = new Client({

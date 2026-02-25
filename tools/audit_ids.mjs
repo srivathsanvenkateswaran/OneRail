@@ -8,7 +8,7 @@ const OUTPUT_FILE = path.resolve('missing_ids.txt');
  */
 async function runAudit() {
     let startId = 1;
-    let endId = 5000; // User current limit
+    let endId = 10000; // User current limit
 
     const args = process.argv.slice(2);
     if (args.length >= 1) startId = parseInt(args[0], 10);

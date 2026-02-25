@@ -3,6 +3,8 @@ import Link from "next/link";
 import { formatDuration, expandRunDays } from "@/lib/utils";
 import styles from "./page.module.css";
 
+export const dynamic = 'force-dynamic';
+
 interface SearchResult {
     train_number: string;
     train_name: string;

@@ -61,7 +61,7 @@ function transform(file) {
     const rawPath = path.join(BRONZE_DIR, file);
     const rawData = JSON.parse(fs.readFileSync(rawPath, 'utf-8'));
 
-    if (!rawData.exists) return null;
+    if (!rawData.exists || !Array.isArray(rawData.stops)) return null;
 
     const { number, name, suffix } = parseTitle(rawData.title);
 
