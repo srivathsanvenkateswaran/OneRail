@@ -2,9 +2,10 @@
     padding-bottom: 4rem;
 }
 
+/* ── HEADER ── */
 .header {
-    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15) 0%, transparent 100%);
-    padding: 4rem 0 3rem;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), transparent 100%);
+    padding: 3rem 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 3rem;
 }
@@ -13,7 +14,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
 .number {
@@ -21,9 +23,9 @@
     font-weight: 800;
     color: var(--accent);
     background: var(--accent-glow);
-    padding: 4px 12px;
-    border-radius: 8px;
-    letter-spacing: 0.1em;
+    padding: 6px 12px;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
 }
 
 .type {
@@ -32,182 +34,427 @@
     text-transform: uppercase;
     color: var(--text-muted);
     letter-spacing: 0.05em;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+.loco {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
 }
 
 .name {
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 800;
-    margin-bottom: 24px;
-    letter-spacing: -0.04em;
+    margin-bottom: 2rem;
+    letter-spacing: -0.02em;
     color: var(--text-main);
 }
 
 .route {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 2rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
 }
 
-.station {
+.routeStation {
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
-.code {
-    font-size: 1.5rem;
-    font-weight: 800;
+.routeStationName {
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--text-main);
 }
 
-.stationName {
+.routeStationCode {
     font-size: 0.9rem;
+    font-weight: 600;
     color: var(--text-muted);
 }
 
-.arrow {
-    font-size: 2rem;
-    color: var(--accent);
+.routeMiddle {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.routeLine {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.routeDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.routeTrack {
+    flex-grow: 1;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--border) 50%, var(--accent));
+}
+
+.routeDist {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    background: var(--bg-page);
+    padding: 2px 8px;
+    border-radius: 12px;
+    position: absolute;
+    top: -24px;
+}
+
+/* Stats Strip */
+.stats {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.statValue {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.statLabel {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Run Days */
+.runDays {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.dayBadge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.dayActive {
+    background: var(--accent);
+    color: #fff;
+}
+
+.dayInactive {
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
     opacity: 0.5;
 }
 
+/* ── SECTIONS ── */
 .section {
     margin-bottom: 4rem;
 }
 
 .sectionTitle {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
     color: var(--text-main);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
 }
 
-/* Rake Styling */
+.sectionSubtitle {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* ── RAKE ── */
 .rake {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
 }
 
 .coach {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     width: 60px;
-    height: 60px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .coach:hover {
-    border-color: var(--accent);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border-color: var(--coach-color);
+}
+
+.coachBar {
+    width: 100%;
+    height: 6px;
+    background: var(--coach-color);
+    margin-bottom: 8px;
 }
 
 .coachLabel {
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 800;
     color: var(--text-main);
+    margin-bottom: 2px;
 }
 
 .coachType {
     font-size: 0.65rem;
-    font-weight: 500;
+    font-weight: 600;
+    color: var(--coach-color);
+    text-transform: uppercase;
+}
+
+.rakeLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
     color: var(--text-muted);
 }
 
-.rakeShare {
-    margin-top: 1rem;
-    font-size: 0.85rem;
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.emptyCard {
+    padding: 2rem;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
     color: var(--text-muted);
+    text-align: center;
     font-style: italic;
 }
 
-/* Timeline/Stop Styling */
-.timeline {
-    position: relative;
-    padding-left: 1.5rem;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 4px;
-    top: 10px;
-    bottom: 10px;
-    width: 2px;
-    background: linear-gradient(to bottom, var(--accent), transparent);
-    opacity: 0.2;
-}
-
-.stop {
-    position: relative;
+.rakeShareCard {
     display: flex;
-    gap: 2rem;
-    padding-bottom: 2rem;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 1.5rem;
+    background: rgba(var(--accent-rgb), 0.05);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 12px;
 }
 
-.stop:last-child {
-    padding-bottom: 0;
+.rakeShareIcon {
+    font-size: 1.5rem;
+    opacity: 0.8;
 }
 
-.stopTime {
-    font-family: monospace;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-main);
-    min-width: 60px;
-}
-
-.stopDot {
-    position: absolute;
-    left: -11px;
-    top: 6px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--bg-page);
-    border: 2px solid var(--accent);
-    z-index: 10;
-}
-
-.stopStation {
-    font-size: 1.1rem;
-    font-weight: 600;
+.rakeShareTitle {
+    font-weight: 700;
     color: var(--text-main);
     margin-bottom: 4px;
 }
 
-.stopMeta {
-    font-size: 0.85rem;
+.rakeShareText {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* ── TABLE ── */
+.tableWrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.table th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: transparent;
+}
+
+.stopRow:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.stopRow:last-child td {
+    border-bottom: none;
+}
+
+.stopTech td {
+    opacity: 0.5;
+}
+
+.stopFirst td,
+.stopLast td {
+    background: rgba(var(--accent-rgb), 0.05);
+}
+
+/* Table Columns */
+.tdSrno {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.stationName {
+    font-weight: 600;
+    color: var(--text-main);
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.stationCode {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.techBadge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
     color: var(--text-muted);
 }
 
-.empty {
-    padding: 2rem;
+.timeVal {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.timeNA {
     color: var(--text-muted);
     font-style: italic;
-    width: 100%;
-    text-align: center;
+    font-size: 0.9rem;
 }
 
+.tdHalt {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.dayNum {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.tdDist {
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.tdPF {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* ── RESPONSIVE ── */
 @media (max-width: 768px) {
     .name {
-        font-size: 2rem;
+        font-size: 1.75rem;
     }
 
     .route {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 16px;
     }
 
-    .code {
-        font-size: 1.25rem;
+    .routeMiddle {
+        width: 100%;
+        flex-direction: row;
+    }
+
+    .routeTrack {
+        flex-direction: column;
+    }
+
+    .routeDist {
+        top: -12px;
+        right: 0;
+    }
+
+    .stats {
+        gap: 1rem;
     }
 }
