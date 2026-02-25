@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -24,6 +25,10 @@ export default function Navbar() {
                     </svg>
                     <span>OneRail</span>
                 </Link>
+
+                <div className={styles.searchWrapper}>
+                    <GlobalSearch />
+                </div>
 
                 {/* Nav links */}
                 <nav className={styles.nav} aria-label="Main navigation">

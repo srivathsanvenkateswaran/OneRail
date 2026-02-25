@@ -26,6 +26,20 @@
     border-color: rgba(255, 255, 255, 0.15);
 }
 
+.searchWrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    max-width: 500px;
+    margin: 0 2rem;
+}
+
+@media (max-width: 768px) {
+    .searchWrapper {
+        display: none;
+    }
+}
+
 .logo {
     display: flex;
     align-items: center;

@@ -23,19 +23,38 @@ function toMins(timeStr) {
 
 /**
  * Extracts a clean train number and name from the title
+ * Raw title examples:
+ *   "12941/Parasnath Express (PT)पारसनाथ एक्सप्रेस3 RailFansBVC --> ASN"
+ *   "01011⇒01011XD/Mumbai CSMT - Adilabad Special Fare..."
+ * We want: { number: "12941", name: "Parasnath Express" }
  */
 function parseTitle(title) {
-    // Example: "12621/Tamil Nadu Express (PT)Other Names: TNतमिलनाडु एक्सप्रेस..."
-    // We want "12621" and "Tamil Nadu Express"
-    const match = title.match(/^(\d{3,6})\/([^\(]+)(?:\(([^)]+)\))?/);
+    // First, strip everything from the first Devanagari (Hindi) character onwards
+    const noHindi = title.replace(/[\u0900-\u097F].*/u, '').trim();
+
+    // Handle "01011⇒01011XD/..." format (internal alias redirects from IRI)
+    // The real number/name comes after the ⇒ or at the start
+    const aliasMatch = noHindi.match(/⇒(\w+)\/(.+)/);
+    if (aliasMatch) {
+        // Extract just the clean English name after the slash
+        const name = aliasMatch[2]
+            .replace(/\([^)]+\)\s*$/, '') // strip trailing (PT) etc.
+            .replace(/\s*[A-Z]{2,7}\/.*$/, '') // strip "BVC/..." station info
+            .trim();
+        return { number: aliasMatch[1].replace(/\D+$/, ''), name, suffix: '' };
+    }
+
+    // Standard "NUMBER/Name (Suffix)" format
+    const match = noHindi.match(/^(\d{3,6})\/([^(]+)(?:\(([^)]+)\))?/);
     if (match) {
         return {
             number: match[1],
-            name: match[2].trim(),
-            suffix: match[3] ? match[3].trim() : ""
+            name: match[2].replace(/\s*[A-Z]{2,7}\/.*$/, '').trim(),
+            suffix: match[3] ? match[3].trim() : ''
         };
     }
-    return { number: null, name: title, suffix: "" };
+
+    return { number: null, name: noHindi, suffix: '' };
 }
 
 function transform(file) {

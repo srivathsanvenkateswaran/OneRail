@@ -14,6 +14,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { dateToDayBit, minsToTimeStr, formatDuration, minsToDayNumber } from "@/lib/utils";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
     const from = searchParams.get("from")?.toUpperCase().trim();

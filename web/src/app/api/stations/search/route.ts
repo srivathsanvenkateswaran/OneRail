@@ -14,6 +14,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
     const zone = req.nextUrl.searchParams.get("zone")?.toUpperCase().trim();

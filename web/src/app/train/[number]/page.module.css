@@ -1,0 +1,213 @@
+.container {
+    padding-bottom: 4rem;
+}
+
+.header {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15) 0%, transparent 100%);
+    padding: 4rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+}
+
+.meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.number {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 4px 12px;
+    border-radius: 8px;
+    letter-spacing: 0.1em;
+}
+
+.type {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.name {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 24px;
+    letter-spacing: -0.04em;
+    color: var(--text-main);
+}
+
+.route {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.station {
+    display: flex;
+    flex-direction: column;
+}
+
+.code {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.stationName {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.arrow {
+    font-size: 2rem;
+    color: var(--accent);
+    opacity: 0.5;
+}
+
+.section {
+    margin-bottom: 4rem;
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+}
+
+/* Rake Styling */
+.rake {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+}
+
+.coach {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.coach:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
+}
+
+.coachLabel {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.coachType {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.rakeShare {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Timeline/Stop Styling */
+.timeline {
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    opacity: 0.2;
+}
+
+.stop {
+    position: relative;
+    display: flex;
+    gap: 2rem;
+    padding-bottom: 2rem;
+}
+
+.stop:last-child {
+    padding-bottom: 0;
+}
+
+.stopTime {
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    min-width: 60px;
+}
+
+.stopDot {
+    position: absolute;
+    left: -11px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bg-page);
+    border: 2px solid var(--accent);
+    z-index: 10;
+}
+
+.stopStation {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.stopMeta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.empty {
+    padding: 2rem;
+    color: var(--text-muted);
+    font-style: italic;
+    width: 100%;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .name {
+        font-size: 2rem;
+    }
+
+    .route {
+        gap: 16px;
+    }
+
+    .code {
+        font-size: 1.25rem;
+    }
+}
