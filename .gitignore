@@ -37,3 +37,4 @@ out.txt
 # Tools local cache
 tools/.tmp/
 tools/node_modules/
+.google-cookie
