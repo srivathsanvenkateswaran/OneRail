@@ -128,10 +128,18 @@
 }
 
 /* Stats Strip */
+.infoStrip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 3rem;
+    margin-bottom: 2rem;
+}
+
 .stats {
     display: flex;
     gap: 2rem;
-    margin-bottom: 2rem;
     flex-wrap: wrap;
 }
 
@@ -155,6 +163,12 @@
 }
 
 /* Run Days */
+.runDaysSection {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .runDays {
     display: flex;
     gap: 8px;
