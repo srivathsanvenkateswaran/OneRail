@@ -300,8 +300,8 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                                     </span>
                                                 </td>
                                                 <td className={styles.tdHalt}>
-                                                    {!isFirst && !isLast && stop.halt_duration_mins != null
-                                                        ? `${stop.halt_duration_mins}m`
+                                                    {!isFirst && !isLast && stop.departure_time_mins != null && stop.arrival_time_mins != null
+                                                        ? `${stop.departure_time_mins - stop.arrival_time_mins}m`
                                                         : "—"}
                                                 </td>
                                                 <td className={styles.tdDay}>
@@ -318,7 +318,8 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                             </tr>
                                             {stop.intermediate_stations != null && stop.intermediate_stations > 0 && (
                                                 <tr className={styles.intermediateRow}>
-                                                    <td colSpan={8} className={styles.intermediateData}>
+                                                    <td></td>
+                                                    <td colSpan={7} className={styles.intermediateData}>
                                                         <span className={styles.intermediateText}>
                                                             ↓ {stop.intermediate_stations} intermediate stations
                                                         </span>
