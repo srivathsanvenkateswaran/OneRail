@@ -38,6 +38,7 @@ This document tracks the tasks and architectural decisions for the OneRail India
   - Use `intermediate_stations` counts to interpolate path density between major waypoints.
   - Integrate MapLibre for visualizing the national rail network.
 - [ ] **Live "Running Status"**: Integrated or simulated status updates.
+- [ ] **Intermediate Stations Full Scraping**: Modify the pipeline to fetch the full list of intermediate stations along with KMs, Day, and Times, and implement a collapsible UI in the Train Detail page.
 
 ## 📝 Key Design Decisions
 1. **Time Representation**: All times stored as `mins_from_midnight` (Int) for efficient SQL filtering and cross-day calculation.
