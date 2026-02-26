@@ -96,20 +96,25 @@ async function scrapeTrainPage(id, force = false) {
             stops: []
         };
 
-        // Extract Additional Details via regex on raw HTML to be safe with deeply nested tags
-        const rawContent = $('body').text().replace(/\s+/g, ' ');
+        // Extract Additional Details safely using specific divs
+        trainData.bedroll_available = $('div:contains("Bedroll/Linen")').last().text().match(/Included|Available|Yes/i) !== null;
 
-        trainData.bedroll_available = /(Bedroll|Linen)[\s:]*(Included|Available|Yes)/i.test(rawContent);
+        const pantryDivText = $('div:contains("Pantry/Catering")').last().text().replace(/\s+/g, ' ');
+        if (pantryDivText.includes('Pantry/Catering')) {
+            trainData.pantry_menu = pantryDivText.substring(pantryDivText.indexOf('Pantry/Catering') + 15).trim();
+        }
 
-        const pantryMatch = rawContent.match(/Pantry\/Catering[\s:]*([^\-♦]+)/i);
-        if (pantryMatch && pantryMatch[1].trim()) trainData.pantry_menu = pantryMatch[1].trim();
+        const runDivText = $('div:contains("Inaugural Run"), div:contains("First Run")').last().text().replace(/\s+/g, ' ');
+        const runMatch = runDivText.match(/(?:Inaugural|First) Run:?\s*([\s\S]+)/i);
+        if (runMatch && runMatch[1].trim()) {
+            trainData.first_run_date = runMatch[1].trim();
+        }
 
-        const runMatch = rawContent.match(/(?:First|Inaugural) Run[\s:]*([A-Za-z]+\s+\d{1,2},\s+\d{4}|\d{2}\/\d{2}\/\d{4})/i);
-        if (runMatch && runMatch[1].trim()) trainData.first_run_date = runMatch[1].trim();
-
-        const speedMatch = rawContent.match(/Max Permissible Speed[\s:]*([^♦]+?(?=km\/h(?:r)?(?: between |$)[^♦K]*)[^♦]+)/i) ||
-            rawContent.match(/Speed[\s:]*(\d+\s*km\/h(?:r)?(?: between [a-zA-Z\s,]+)?)/i);
-        if (speedMatch && speedMatch[1]) trainData.max_speed = speedMatch[1].trim().replace(/\s+/g, ' ');
+        const maxSpeedDivText = $('div:contains("Max Permissible Speed")').last().text().replace(/\s+/g, ' ');
+        const speedMatch = maxSpeedDivText.match(/Max Permissible Speed[:\s]*([\s\S]+)/i);
+        if (speedMatch && speedMatch[1].trim() && speedMatch[1].trim().toLowerCase() !== 'n/a') {
+            trainData.max_speed = speedMatch[1].trim();
+        }
 
         // Extract Rake Sharing
         const rsaContainer = $('.ltGreenColor:contains("RSA")').first();
