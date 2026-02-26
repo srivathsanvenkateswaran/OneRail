@@ -30,23 +30,7 @@ export default function Navbar() {
                     <GlobalSearch />
                 </div>
 
-                {/* Nav links */}
-                <nav className={styles.nav} aria-label="Main navigation">
-                    <Link
-                        href="/"
-                        className={`${styles.link} ${pathname === "/" ? styles.active : ""}`}
-                    >
-                        Search
-                    </Link>
-                    <a
-                        href="https://github.com"
-                        className={styles.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        GitHub
-                    </a>
-                </nav>
+
             </div>
         </header>
     );
