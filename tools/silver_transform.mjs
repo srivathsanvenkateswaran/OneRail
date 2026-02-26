@@ -57,6 +57,11 @@ function parseTitle(title) {
     return { number: null, name: noHindi, suffix: '' };
 }
 
+function cleanMaxSpeed(speedStr) {
+    if (!speedStr) return null;
+    return speedStr.replace(/([A-Z0-9]{2,6})\/([\w\s\.-]+?)(?=\s+and\s+|\s*,|\s*$|$)/g, (match, code, name) => `${name.trim()} (${code.trim()})`);
+}
+
 function transform(file) {
     const rawPath = path.join(BRONZE_DIR, file);
     const rawData = JSON.parse(fs.readFileSync(rawPath, 'utf-8'));
@@ -76,7 +81,7 @@ function transform(file) {
         bedroll_available: rawData.bedroll_available || false,
         pantry_menu: rawData.pantry_menu || null,
         first_run_date: rawData.first_run_date || null,
-        max_speed: rawData.max_speed || null,
+        max_speed: cleanMaxSpeed(rawData.max_speed),
         rake_composition: (rawData.rake_composition || []).map(c => ({
             seq: parseInt(c.sequence, 10),
             type: c.type.toLowerCase(),
