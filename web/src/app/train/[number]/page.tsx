@@ -74,7 +74,8 @@ export default async function TrainDetailsPage({ params }: PageProps) {
             source_station: true,
             destination_station: true,
             stops: {
-                orderBy: { stop_sequence: 'asc' }
+                orderBy: { stop_sequence: 'asc' },
+                include: { station: true }
             },
             coach_configs: {
                 orderBy: { position_in_train: 'asc' }
@@ -255,7 +256,7 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                         >
                                             <td className={styles.tdSrno}>{stop.stop_sequence}</td>
                                             <td className={styles.tdStation}>
-                                                <span className={styles.stationName}>{stop.station_name}</span>
+                                                <span className={styles.stationName}>{stop.station?.station_name}</span>
                                                 <span className={styles.stationCode}>({stop.station_code})</span>
                                                 {stop.is_technical_halt && (
                                                     <span className={styles.techBadge}>Technical</span>
