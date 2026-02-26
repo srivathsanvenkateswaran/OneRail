@@ -137,26 +137,36 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* Stats strip */}
                     {/* Stats & Schedule Strip */}
                     <div className={styles.infoStrip}>
-                        <div className={styles.stats}>
-                            {train.total_duration_mins && (
+                        {/* FIRST ROW: Core Stats + Days of Run */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '2rem', alignItems: 'flex-start' }}>
+                            <div className={styles.statsRow}>
+                                {train.total_duration_mins && (
+                                    <div className={styles.stat}>
+                                        <span className={styles.statValue}>{formatDuration(train.total_duration_mins)}</span>
+                                        <span className={styles.statLabel}>Journey Time</span>
+                                    </div>
+                                )}
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>{formatDuration(train.total_duration_mins)}</span>
-                                    <span className={styles.statLabel}>Journey Time</span>
+                                    <span className={styles.statValue}>{totalStops}</span>
+                                    <span className={styles.statLabel}>Halts</span>
                                 </div>
-                            )}
-                            <div className={styles.stat}>
-                                <span className={styles.statValue}>{totalStops}</span>
-                                <span className={styles.statLabel}>Halts</span>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>
+                                        {isDaily ? "Daily" : runDaysList.slice(0, 2).join(", ") + (runDaysList.length > 2 ? "…" : "")}
+                                    </span>
+                                    <span className={styles.statLabel}>Frequency</span>
+                                </div>
                             </div>
-                            <div className={styles.stat}>
-                                <span className={styles.statValue}>
-                                    {isDaily ? "Daily" : runDaysList.slice(0, 2).join(", ") + (runDaysList.length > 2 ? "…" : "")}
-                                </span>
-                                <span className={styles.statLabel}>Frequency</span>
+                            <div className={styles.runDaysSection}>
+                                <span className={styles.statLabel}>Days of Run</span>
+                                <RunDayBadges bitmask={train.run_days} />
                             </div>
+                        </div>
+
+                        {/* SECOND ROW: Extended Information */}
+                        <div className={styles.statsRowSecondary}>
                             {train.has_pantry && (
                                 <div className={styles.stat}>
                                     <span className={styles.statValue}>
@@ -183,11 +193,6 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                     <span className={styles.statLabel}>Max Speed</span>
                                 </div>
                             )}
-                        </div>
-
-                        <div className={styles.runDaysSection}>
-                            <span className={styles.statLabel}>Days of Run</span>
-                            <RunDayBadges bitmask={train.run_days} />
                         </div>
                     </div>
                 </div>

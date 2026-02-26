@@ -130,11 +130,25 @@
 /* Stats Strip */
 .infoStrip {
     display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.statsRow {
+    display: flex;
+    gap: 2rem;
     flex-wrap: wrap;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 3rem;
-    margin-bottom: 1rem;
+}
+
+.statsRowSecondary {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
 }
 
 .stats {
