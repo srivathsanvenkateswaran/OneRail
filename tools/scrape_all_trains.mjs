@@ -13,12 +13,12 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 }
 
 // Function to scrape a single ID
-async function scrapeTrainPage(id) {
+async function scrapeTrainPage(id, force = false) {
     const targetUrl = `https://indiarailinfo.com/train/${id}`;
     const outPath = path.join(OUTPUT_DIR, `${id}.json`);
 
     // Check if we already scraped this ID via file system
-    if (fs.existsSync(outPath)) {
+    if (!force && fs.existsSync(outPath)) {
         console.log(`⏩ Skipping ID ${id} (Already exists)`);
         return true;
     }
@@ -88,9 +88,28 @@ async function scrapeTrainPage(id) {
             source_url: targetUrl,
             resolved_url: resolvedUrl,
             rake_sharing: '',
+            bedroll_available: false,
+            pantry_menu: null,
+            first_run_date: null,
+            max_speed: null,
             rake_composition: [],
             stops: []
         };
+
+        // Extract Additional Details via regex on raw HTML to be safe with deeply nested tags
+        const rawContent = $('body').text().replace(/\s+/g, ' ');
+
+        trainData.bedroll_available = /(Bedroll|Linen)[\s:]*(Included|Available|Yes)/i.test(rawContent);
+
+        const pantryMatch = rawContent.match(/Pantry\/Catering[\s:]*([^\-♦]+)/i);
+        if (pantryMatch && pantryMatch[1].trim()) trainData.pantry_menu = pantryMatch[1].trim();
+
+        const runMatch = rawContent.match(/(?:First|Inaugural) Run[\s:]*([A-Za-z]+\s+\d{1,2},\s+\d{4}|\d{2}\/\d{2}\/\d{4})/i);
+        if (runMatch && runMatch[1].trim()) trainData.first_run_date = runMatch[1].trim();
+
+        const speedMatch = rawContent.match(/Max Permissible Speed[\s:]*([^♦]+?(?=km\/h(?:r)?(?: between |$)[^♦K]*)[^♦]+)/i) ||
+            rawContent.match(/Speed[\s:]*(\d+\s*km\/h(?:r)?(?: between [a-zA-Z\s,]+)?)/i);
+        if (speedMatch && speedMatch[1]) trainData.max_speed = speedMatch[1].trim().replace(/\s+/g, ' ');
 
         // Extract Rake Sharing
         const rsaContainer = $('.ltGreenColor:contains("RSA")').first();
@@ -195,12 +214,20 @@ async function runScraper() {
     let startId = 1;
     let endId = 25000;
     let batchSize = 10;
+    let force = false;
 
     const args = process.argv.slice(2);
+    // Parse force flag anywhere
+    if (args.includes('--force')) {
+        force = true;
+        args.splice(args.indexOf('--force'), 1);
+    }
+
     if (args.length >= 1) startId = parseInt(args[0], 10);
     if (args.length >= 2) endId = parseInt(args[1], 10);
+    if (args.length >= 3) batchSize = parseInt(args[2], 10);
 
-    console.log(`🚀 Starting enumeration from ID ${startId} to ${endId} with concurrency ${batchSize}`);
+    console.log(`🚀 Starting enumeration from ID ${startId} to ${endId} with concurrency ${batchSize} ${force ? '[FORCE]' : ''}`);
 
     for (let currentId = startId; currentId <= endId; currentId += batchSize) {
         const batch = [];
@@ -213,7 +240,7 @@ async function runScraper() {
             let retries = 0;
 
             while (!success && retries < 3) {
-                success = await scrapeTrainPage(id);
+                success = await scrapeTrainPage(id, force);
                 if (!success) {
                     retries++;
                     console.log(`🔄 Retrying ID ${id} (Attempt ${retries}/3) after delay...`);

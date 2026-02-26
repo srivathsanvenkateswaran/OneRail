@@ -73,6 +73,10 @@ function transform(file) {
         is_imaginary: rawData.is_imaginary || false,
         source_url: rawData.source_url,
         rake_sharing: rawData.rake_sharing,
+        bedroll_available: rawData.bedroll_available || false,
+        pantry_menu: rawData.pantry_menu || null,
+        first_run_date: rawData.first_run_date || null,
+        max_speed: rawData.max_speed || null,
         rake_composition: (rawData.rake_composition || []).map(c => ({
             seq: parseInt(c.sequence, 10),
             type: c.type.toLowerCase(),

@@ -49,14 +49,18 @@ async function main() {
             const lastStop = data.stops[data.stops.length - 1];
 
             await client.query(
-                `INSERT INTO "Train" (train_number, train_name, train_type, rake_share_text, total_distance_km, run_days, source_station_code, destination_station_code)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `INSERT INTO "Train" (train_number, train_name, train_type, rake_share_text, total_distance_km, run_days, source_station_code, destination_station_code, bedroll_available, pantry_menu, max_speed, first_run_date)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                  ON CONFLICT (train_number) DO UPDATE SET
                     train_name = EXCLUDED.train_name,
                     rake_share_text = EXCLUDED.rake_share_text,
                     total_distance_km = EXCLUDED.total_distance_km,
                     source_station_code = EXCLUDED.source_station_code,
-                    destination_station_code = EXCLUDED.destination_station_code`,
+                    destination_station_code = EXCLUDED.destination_station_code,
+                    bedroll_available = EXCLUDED.bedroll_available,
+                    pantry_menu = EXCLUDED.pantry_menu,
+                    max_speed = EXCLUDED.max_speed,
+                    first_run_date = EXCLUDED.first_run_date`,
                 [
                     data.train_number,
                     data.train_name,
@@ -65,7 +69,11 @@ async function main() {
                     lastStop ? lastStop.km : 0,
                     127,
                     firstStop ? firstStop.station_code : '???',
-                    lastStop ? lastStop.station_code : '???'
+                    lastStop ? lastStop.station_code : '???',
+                    data.bedroll_available || false,
+                    data.pantry_menu || null,
+                    data.max_speed || null,
+                    data.first_run_date || null
                 ]
             );
 
