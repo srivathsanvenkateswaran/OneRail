@@ -72,7 +72,7 @@ export default function GlobalSearch() {
                 <input
                     type="text"
                     className={styles.input}
-                    placeholder="Search train name or number..."
+                    placeholder="Search trains..."
                     value={query}
                     onChange={handleInput}
                     onFocus={() => { if (query.length >= 2) setOpen(true); }}

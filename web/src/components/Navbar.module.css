@@ -35,8 +35,33 @@
 }
 
 @media (max-width: 768px) {
+    .header {
+        padding: 0 0.75rem;
+        top: 0.5rem;
+    }
+
+    .inner {
+        padding: 0 0.75rem;
+        height: 54px;
+    }
+
     .searchWrapper {
+        flex: 1;
+        margin: 0 0.5rem;
+        min-width: 0;
+    }
+
+    .logo span {
         display: none;
+    }
+
+    .nav {
+        gap: 0.25rem;
+    }
+
+    .link {
+        padding: 6px 10px;
+        font-size: 0.8rem;
     }
 }
 
