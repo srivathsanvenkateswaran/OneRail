@@ -187,12 +187,26 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                     <span className={styles.statLabel}>First Run</span>
                                 </div>
                             )}
-                            {train.max_speed && (
-                                <div className={styles.stat} title={train.max_speed}>
-                                    <span className={styles.statValue}>{train.max_speed}</span>
-                                    <span className={styles.statLabel}>Max Speed</span>
-                                </div>
-                            )}
+                            {train.max_speed && (() => {
+                                const speedMatch = train.max_speed.match(/^(\d+(?:\.\d+)?)\s*(?:km\/hr|kmph|km\/h)/i);
+                                const speed = speedMatch ? `${speedMatch[1]} km/h` : train.max_speed;
+                                const sectionMatch = train.max_speed.match(/between\s+(.+)$/i);
+                                const section = sectionMatch ? sectionMatch[1].replace(/between/i, '').trim() : null;
+
+                                return (
+                                    <div className={styles.stat} title={train.max_speed}>
+                                        <span className={styles.statValue}>
+                                            {speed} <span className={styles.statSubText} style={{ fontSize: '0.8rem' }}>⚡</span>
+                                        </span>
+                                        <span className={styles.statLabel}>Max Speed</span>
+                                        {section && (
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {section}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
