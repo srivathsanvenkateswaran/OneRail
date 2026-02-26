@@ -418,6 +418,7 @@
 .intermediateText {
     display: inline-block;
     padding: 4px 12px;
+    margin-left: -12px;
     background: rgba(var(--accent-rgb), 0.05);
     border: 1px dashed rgba(var(--accent-rgb), 0.2);
     border-radius: 12px;
