@@ -406,6 +406,26 @@
     color: var(--text-muted);
 }
 
+.intermediateRow td {
+    padding: 0 1rem 1rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.intermediateData {
+    text-align: center;
+}
+
+.intermediateText {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(var(--accent-rgb), 0.05);
+    border: 1px dashed rgba(var(--accent-rgb), 0.2);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .timeVal {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-weight: 600;

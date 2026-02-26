@@ -1,3 +1,4 @@
+import React from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { minsToTimeStr, formatDuration, expandRunDays } from "@/lib/utils";
@@ -158,8 +159,28 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                             </div>
                             {train.has_pantry && (
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>🍽️</span>
+                                    <span className={styles.statValue}>
+                                        🍽️ <span className={styles.statSubText}>{train.pantry_menu ? '(Menu Available)' : ''}</span>
+                                    </span>
                                     <span className={styles.statLabel}>Pantry Car</span>
+                                </div>
+                            )}
+                            {train.bedroll_available && (
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>🛏️</span>
+                                    <span className={styles.statLabel}>Bedroll</span>
+                                </div>
+                            )}
+                            {train.first_run_date && (
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{train.first_run_date}</span>
+                                    <span className={styles.statLabel}>First Run</span>
+                                </div>
+                            )}
+                            {train.max_speed_kmh && (
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{train.max_speed_kmh} <span className={styles.statSubText}>km/h</span></span>
+                                    <span className={styles.statLabel}>Max Speed</span>
                                 </div>
                             )}
                         </div>
@@ -251,50 +272,60 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                     const isFirst = idx === 0;
                                     const isLast = idx === train.stops.length - 1;
                                     return (
-                                        <tr
-                                            key={stop.id}
-                                            className={`
+                                        <React.Fragment key={stop.id}>
+                                            <tr
+                                                className={`
                                                 ${styles.stopRow}
                                                 ${isFirst ? styles.stopFirst : ""}
                                                 ${isLast ? styles.stopLast : ""}
                                                 ${stop.is_technical_halt ? styles.stopTech : ""}
                                             `}
-                                        >
-                                            <td className={styles.tdSrno}>{stop.stop_sequence}</td>
-                                            <td className={styles.tdStation}>
-                                                <span className={styles.stationName}>{stop.station?.station_name}</span>
-                                                <span className={styles.stationCode}>({stop.station_code})</span>
-                                                {stop.is_technical_halt && (
-                                                    <span className={styles.techBadge}>Technical</span>
-                                                )}
-                                            </td>
-                                            <td className={styles.tdTime}>
-                                                <span className={isFirst ? styles.timeNA : styles.timeVal}>
-                                                    {isFirst ? "Source" : minsToTimeStr(stop.arrival_time_mins)}
-                                                </span>
-                                            </td>
-                                            <td className={styles.tdTime}>
-                                                <span className={isLast ? styles.timeNA : styles.timeVal}>
-                                                    {isLast ? "Destination" : minsToTimeStr(stop.departure_time_mins)}
-                                                </span>
-                                            </td>
-                                            <td className={styles.tdHalt}>
-                                                {!isFirst && !isLast && stop.halt_duration_mins != null
-                                                    ? `${stop.halt_duration_mins}m`
-                                                    : "—"}
-                                            </td>
-                                            <td className={styles.tdDay}>
-                                                <span className={styles.dayNum}>D{stop.day_number}</span>
-                                            </td>
-                                            <td className={styles.tdDist}>
-                                                {stop.distance_from_source_km != null
-                                                    ? `${stop.distance_from_source_km} km`
-                                                    : "—"}
-                                            </td>
-                                            <td className={styles.tdPF}>
-                                                {stop.platform_number ?? "—"}
-                                            </td>
-                                        </tr>
+                                            >
+                                                <td className={styles.tdSrno}>{stop.stop_sequence}</td>
+                                                <td className={styles.tdStation}>
+                                                    <span className={styles.stationName}>{stop.station?.station_name}</span>
+                                                    <span className={styles.stationCode}>({stop.station_code})</span>
+                                                    {stop.is_technical_halt && (
+                                                        <span className={styles.techBadge}>Technical</span>
+                                                    )}
+                                                </td>
+                                                <td className={styles.tdTime}>
+                                                    <span className={isFirst ? styles.timeNA : styles.timeVal}>
+                                                        {isFirst ? "Source" : minsToTimeStr(stop.arrival_time_mins)}
+                                                    </span>
+                                                </td>
+                                                <td className={styles.tdTime}>
+                                                    <span className={isLast ? styles.timeNA : styles.timeVal}>
+                                                        {isLast ? "Destination" : minsToTimeStr(stop.departure_time_mins)}
+                                                    </span>
+                                                </td>
+                                                <td className={styles.tdHalt}>
+                                                    {!isFirst && !isLast && stop.halt_duration_mins != null
+                                                        ? `${stop.halt_duration_mins}m`
+                                                        : "—"}
+                                                </td>
+                                                <td className={styles.tdDay}>
+                                                    <span className={styles.dayNum}>D{stop.day_number}</span>
+                                                </td>
+                                                <td className={styles.tdDist}>
+                                                    {stop.distance_from_source_km != null
+                                                        ? `${stop.distance_from_source_km} km`
+                                                        : "—"}
+                                                </td>
+                                                <td className={styles.tdPF}>
+                                                    {stop.platform_number ?? "—"}
+                                                </td>
+                                            </tr>
+                                            {stop.intermediate_stations != null && stop.intermediate_stations > 0 && (
+                                                <tr className={styles.intermediateRow}>
+                                                    <td colSpan={8} className={styles.intermediateData}>
+                                                        <span className={styles.intermediateText}>
+                                                            ↓ {stop.intermediate_stations} intermediate stations
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
