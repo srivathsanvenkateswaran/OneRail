@@ -177,9 +177,9 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                     <span className={styles.statLabel}>First Run</span>
                                 </div>
                             )}
-                            {train.max_speed_kmh && (
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{train.max_speed_kmh} <span className={styles.statSubText}>km/h</span></span>
+                            {train.max_speed && (
+                                <div className={styles.stat} title={train.max_speed}>
+                                    <span className={styles.statValue}>{train.max_speed}</span>
                                     <span className={styles.statLabel}>Max Speed</span>
                                 </div>
                             )}

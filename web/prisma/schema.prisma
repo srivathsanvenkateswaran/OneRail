@@ -96,7 +96,7 @@ model Train {
   bedroll_available        Boolean  @default(false)
   pantry_menu              String?
   first_run_date           String?
-  max_speed_kmh            Int?
+  max_speed                String?
 }
 
 // ─────────────────────────────────────────────
