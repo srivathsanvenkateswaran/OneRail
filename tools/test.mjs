@@ -1,26 +1,17 @@
-import * as cheerio from 'cheerio';
+import fs from 'fs';
+import path from 'path';
 
-async function test() {
-    const res = await fetch('https://indiarailinfo.com/train/12941', {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    });
-    const html = await res.text();
-    const $ = cheerio.load(html);
+const dir = path.resolve('.tmp/silver/trains');
+const files = fs.readdirSync(dir);
+const types = new Set();
 
-    console.log("--- Extracting Specifics ---");
-    // Look for Bedroll, Pantry, Menu, First Run, Speed
-    $('div, span').each((i, el) => {
-        const t = $(el).text().replace(/\s+/g, ' ').trim();
-        const tLower = t.toLowerCase();
-        if (tLower.includes('bedroll') ||
-            tLower.includes('pantry') ||
-            tLower.includes('menu') ||
-            (tLower.includes('first run') && !tLower.includes('update')) ||
-            tLower.includes('max permissible speed') ||
-            tLower.includes('km/hr')) {
-            console.log(t.substring(0, 100));
+for (const f of files) {
+    const data = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8'));
+    if (data.rake_composition) {
+        for (const obj of data.rake_composition) {
+            types.add(obj.type);
         }
-    });
+    }
 }
 
-test();
+console.log(Array.from(types));

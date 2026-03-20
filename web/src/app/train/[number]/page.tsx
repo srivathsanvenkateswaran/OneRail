@@ -15,38 +15,86 @@ const CLASS_COLORS: Record<string, string> = {
     "1a": "#f59e0b", // Gold — First AC
     "2a": "#3b82f6", // Blue — Second AC
     "3a": "#8b5cf6", // Purple — Third AC
+    "3e": "#d946ef", // Pink - 3A Economy
     "sl": "#10b981", // Green — Sleeper
-    "gen": "#6b7280", // Grey — General
+    "gen": "#6b7280", // Grey — General (GS/GEN)
     "cc": "#06b6d4", // Cyan — AC Chair Car
     "ec": "#f97316", // Orange — Executive Chair Car
     "fc": "#ef4444", // Red — First Class
     "2s": "#84cc16", // Lime — Second Sitting
+    "ea": "#dc2626", // Red - Exec Anubhuti
     "eog": "#374151", // Dark — EOG power car
-    "loco-e": "#1f2937", // Darkest — Electric Loco
-    "loco-d": "#292524", // Darkest — Diesel Loco
+    "slr": "#374151", // SLR / Brake van
+    "pc": "#eab308",  // Yellow - Pantry Car
+    "loco": "#1f2937", // Darkest — Engine/Loco
+    "lds": "#ec4899", // Pink - Ladies 
 };
 
 const CLASS_LABELS: Record<string, string> = {
-    "1a": "First AC",
-    "2a": "Second AC",
-    "3a": "Third AC",
-    "sl": "Sleeper",
-    "gen": "General",
-    "cc": "AC Chair Car",
-    "ec": "Exec Chair",
-    "fc": "First Class",
-    "2s": "2nd Sitting",
-    "eog": "Power Car",
-    "loco-e": "Electric Loco",
-    "loco-d": "Diesel Loco",
+    "1a": "First AC (1A)",
+    "2a": "Second AC (2A)",
+    "3a": "Third AC (3A)",
+    "3e": "3 AC Economy (3E)",
+    "sl": "Sleeper (SL)",
+    "gen": "General (GEN/UR)",
+    "cc": "AC Chair Car (CC)",
+    "ec": "Exec Chair (EC)",
+    "fc": "First Class (FC)",
+    "2s": "Second Sitting (2S)",
+    "ea": "Exec Anubhuti (EA)",
+    "eog": "Power Car (EOG)",
+    "slr": "SLR / Shield",
+    "pc": "Pantry Car (PC)",
+    "loco": "Engine/Loco",
+    "lds": "Ladies Coach",
 };
 
+const CLASS_SHORT_NAMES: Record<string, string> = {
+    "1a": "1A",
+    "2a": "2A",
+    "3a": "3A",
+    "3e": "3E",
+    "sl": "SL",
+    "gen": "GEN",
+    "cc": "CC",
+    "ec": "EC",
+    "fc": "FC",
+    "2s": "2S",
+    "ea": "EA",
+    "eog": "EOG",
+    "slr": "SLR",
+    "pc": "PC",
+    "loco": "LOCO",
+    "lds": "LDS",
+};
+
+function normalizeClassCode(classCode: string): string {
+    const code = classCode.toLowerCase();
+    if (code.startsWith("m") && !isNaN(parseInt(code.slice(1)))) return "3e";
+    if (code === "a1") return "1a";
+    if (code === "a2") return "2a";
+    if (code === "a3") return "3a";
+    if (code === "ae") return "3e";
+    if (code === "ex") return "ec";
+    if (code === "s2") return "2s";
+    if (code === "darr") return "slr";
+    if (code === "gs") return "gen";
+    if (code === "eng" || code.startsWith("loco")) return "loco";
+    return code;
+}
+
 function getCoachColor(classCode: string): string {
-    return CLASS_COLORS[classCode.toLowerCase()] ?? "#374151";
+    return CLASS_COLORS[normalizeClassCode(classCode)] ?? "#374151";
 }
 
 function getCoachLabel(classCode: string): string {
-    return CLASS_LABELS[classCode.toLowerCase()] ?? classCode.toUpperCase();
+    const code = normalizeClassCode(classCode);
+    return CLASS_LABELS[code] ?? classCode.toUpperCase();
+}
+
+function getShortCoachType(classCode: string): string {
+    const code = normalizeClassCode(classCode);
+    return CLASS_SHORT_NAMES[code] ?? classCode.toUpperCase();
 }
 
 function RunDayBadges({ bitmask }: { bitmask: number }) {
@@ -91,6 +139,28 @@ export default async function TrainDetailsPage({ params }: PageProps) {
     const runDaysList = expandRunDays(train.run_days);
     const isDaily = runDaysList.length === 7;
     const totalStops = train.stops.length;
+    const totalHalts = Math.max(0, totalStops - 2);
+    const totalIntermediateStops = train.stops.reduce((sum, stop) => sum + (stop.intermediate_stations || 0), 0);
+
+    let averageSpeed = 0;
+    if (train.total_distance_km && train.total_duration_mins && train.total_duration_mins > 0) {
+        averageSpeed = Math.round(train.total_distance_km / (train.total_duration_mins / 60));
+    }
+
+    const firstWordOfName = train.train_name.split(/[\s-]/)[0];
+    const reverseTrain = await prisma.train.findFirst({
+        where: {
+            source_station_code: train.destination_station_code,
+            destination_station_code: train.source_station_code,
+            train_name: {
+                contains: firstWordOfName,
+            }
+        },
+        select: {
+            train_number: true,
+            train_name: true
+        }
+    });
 
     return (
         <div className={styles.container}>
@@ -100,8 +170,16 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                     <div className={styles.meta}>
                         <span className={styles.number}>{train.train_number}</span>
                         <span className={styles.type}>{train.train_type}</span>
+                        {train.zone_code && (
+                            <span className={styles.zone}>{train.zone_code} Zone</span>
+                        )}
                         {train.locomotive_type && (
                             <span className={styles.loco}>{train.locomotive_type}</span>
+                        )}
+                        {reverseTrain && (
+                            <a href={`/train/${reverseTrain.train_number}`} className={styles.reverseLink} title={`Reverse train: ${reverseTrain.train_name}`}>
+                                🔁 {reverseTrain.train_number}
+                            </a>
                         )}
                     </div>
                     <h1 className={styles.name}>{train.train_name}</h1>
@@ -142,21 +220,35 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                         {/* FIRST ROW: Core Stats + Days of Run */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '2rem', alignItems: 'flex-start' }}>
                             <div className={styles.statsRow}>
-                                {train.total_duration_mins && (
+                                {train.total_duration_mins != null && (
                                     <div className={styles.stat}>
                                         <span className={styles.statValue}>{formatDuration(train.total_duration_mins)}</span>
-                                        <span className={styles.statLabel}>Journey Time</span>
+                                        <span className={styles.statLabel}>Travel Time</span>
+                                    </div>
+                                )}
+                                {train.total_distance_km != null && (
+                                    <div className={styles.stat}>
+                                        <span className={styles.statValue}>{train.total_distance_km.toLocaleString()} km</span>
+                                        <span className={styles.statLabel}>Distance</span>
+                                    </div>
+                                )}
+                                {averageSpeed > 0 && (
+                                    <div className={styles.stat}>
+                                        <span className={styles.statValue}>{averageSpeed} km/h</span>
+                                        <span className={styles.statLabel}>Avg Speed</span>
                                     </div>
                                 )}
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>{totalStops}</span>
+                                    <span className={styles.statValue}>{totalHalts}</span>
                                     <span className={styles.statLabel}>Halts</span>
                                 </div>
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>
-                                        {isDaily ? "Daily" : runDaysList.slice(0, 2).join(", ") + (runDaysList.length > 2 ? "…" : "")}
-                                    </span>
-                                    <span className={styles.statLabel}>Frequency</span>
+                                    <span className={styles.statValue}>{totalStops}</span>
+                                    <span className={styles.statLabel}>Total Stations</span>
+                                </div>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{totalIntermediateStops}</span>
+                                    <span className={styles.statLabel}>Intermed. Stn</span>
                                 </div>
                             </div>
                             <div className={styles.runDaysSection}>
@@ -175,12 +267,20 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                     <span className={styles.statLabel}>Pantry Car</span>
                                 </div>
                             )}
-                            {train.bedroll_available && (
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>🛏️</span>
-                                    <span className={styles.statLabel}>Bedroll</span>
-                                </div>
-                            )}
+                            <div className={styles.stat}>
+                                <span className={styles.statValue}>
+                                    {train.bedroll_available ? (
+                                        <span style={{ color: "var(--success-color, #10b981)", display: "flex", alignItems: "center", gap: "6px" }}>
+                                            <span style={{ fontSize: "1.2rem" }}>✅</span> <span style={{ fontSize: "1rem", fontWeight: "600" }}>Available</span>
+                                        </span>
+                                    ) : (
+                                        <span style={{ color: "var(--error-color, #ef4444)", display: "flex", alignItems: "center", gap: "6px" }}>
+                                            <span style={{ fontSize: "1.2rem" }}>❌</span> <span style={{ fontSize: "1rem", fontWeight: "600" }}>Not Available</span>
+                                        </span>
+                                    )}
+                                </span>
+                                <span className={styles.statLabel}>Bedroll Status</span>
+                            </div>
                             {train.first_run_date && (
                                 <div className={styles.stat}>
                                     <span className={styles.statValue}>{train.first_run_date}</span>
@@ -230,13 +330,13 @@ export default async function TrainDetailsPage({ params }: PageProps) {
                                     >
                                         <div className={styles.coachBar} />
                                         <div className={styles.coachLabel}>{coach.coach_label}</div>
-                                        <div className={styles.coachType}>{coach.class_code.toUpperCase()}</div>
+                                        <div className={styles.coachType}>{getShortCoachType(coach.class_code)}</div>
                                     </div>
                                 ))}
                             </div>
                             {/* Legend */}
                             <div className={styles.rakeLegend}>
-                                {Array.from(new Set(train.coach_configs.map((c: any) => c.class_code.toLowerCase())))
+                                {Array.from(new Set(train.coach_configs.map((c: any) => normalizeClassCode(c.class_code))))
                                     .map((code: any) => (
                                         <div key={code} className={styles.legendItem}>
                                             <span

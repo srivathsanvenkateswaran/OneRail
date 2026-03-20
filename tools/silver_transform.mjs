@@ -82,11 +82,21 @@ function transform(file) {
         pantry_menu: rawData.pantry_menu || null,
         first_run_date: rawData.first_run_date || null,
         max_speed: cleanMaxSpeed(rawData.max_speed),
-        rake_composition: (rawData.rake_composition || []).map(c => ({
-            seq: parseInt(c.sequence, 10),
-            type: c.type.toLowerCase(),
-            label: c.coach
-        })),
+        rake_composition: (rawData.rake_composition || []).map(c => {
+            let label = c.coach ? c.coach.toUpperCase() : "";
+            let type = c.type.toLowerCase();
+
+            // IR Info sometimes incorrectly maps M1, M2, M3 (3 AC Economy) as CC.
+            if (label.match(/^M\d+$/)) {
+                type = '3e';
+            }
+
+            return {
+                seq: parseInt(c.sequence, 10),
+                type: type,
+                label: c.coach
+            };
+        }),
         stops: []
     };
 
