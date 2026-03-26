@@ -189,6 +189,11 @@ model TrackSegment {
   electrified       Boolean @default(false)
   // BG (Broad Gauge), MG (Metre Gauge), NG (Narrow Gauge)
   gauge             String  @default("BG")
+  // Operational, Under Construction, Proposed, etc.
+  status            String  @default("Operational")
+  
+  // Array of [longitude, latitude] coordinates framing the exact path (GeoJSON LineString)
+  path_coordinates  Json?
 
   from_station Station @relation("TrackFrom", fields: [from_station_code], references: [station_code])
   to_station   Station @relation("TrackTo", fields: [to_station_code], references: [station_code])
