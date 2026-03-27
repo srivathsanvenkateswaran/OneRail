@@ -28,6 +28,22 @@ function convexHull(points: number[][]): number[][] {
     return [...lower, ...upper];
 }
 
+// Remove outliers beyond `sigmas` standard deviations from zone centroid
+function filterOutliers(pts: number[][], sigmas = 2.0): number[][] {
+    if (pts.length < 5) return pts;
+
+    const meanLon = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+    const meanLat = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+
+    const stdLon = Math.sqrt(pts.reduce((s, p) => s + (p[0] - meanLon) ** 2, 0) / pts.length);
+    const stdLat = Math.sqrt(pts.reduce((s, p) => s + (p[1] - meanLat) ** 2, 0) / pts.length);
+
+    return pts.filter(p =>
+        Math.abs(p[0] - meanLon) <= sigmas * stdLon &&
+        Math.abs(p[1] - meanLat) <= sigmas * stdLat
+    );
+}
+
 // ── Handler ──────────────────────────────────────────────────────────────────
 export async function GET() {
     // Fetch all stations that have a zone and coordinates
@@ -50,8 +66,15 @@ export async function GET() {
 
     // Build GeoJSON FeatureCollection — one Feature per zone
     const features: any[] = [];
-    for (const [zoneCode, pts] of zoneMap.entries()) {
+    for (const [zoneCode, rawPts] of zoneMap.entries()) {
+        // Skip blank/garbage zone codes
+        if (!zoneCode || zoneCode.length < 2) continue;
+        if (rawPts.length < 3) continue;
+
+        // Filter outlier stations (mis-tagged or boundary stations in wrong zone)
+        const pts = filterOutliers(rawPts, 2.0);
         if (pts.length < 3) continue;
+
         const hull = convexHull(pts);
         if (hull.length < 3) continue;
         // Close the ring
