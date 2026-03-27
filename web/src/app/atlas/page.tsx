@@ -9,6 +9,8 @@ import Map, {
 import 'maplibre-gl/dist/maplibre-gl.css';
 import styles from './page.module.css';
 import type { LayerProps } from 'react-map-gl/maplibre';
+import { getCachedData, setCachedData } from '@/lib/clientCache';
+import Link from 'next/link';
 
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
@@ -155,6 +157,7 @@ interface LayerVisibility {
 export default function AtlasPage() {
     const [data, setData] = useState<any>(null);
     const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
+    const [selectedFeature, setSelectedFeature] = useState<HoverInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<{ tracks: number; stations: number } | null>(null);
@@ -165,21 +168,47 @@ export default function AtlasPage() {
     const mapRef = useRef<MapRef>(null);
 
     useEffect(() => {
-        setLoading(true);
-        fetch('/api/atlas/geojson?type=all&limit=200000')
-            .then(res => res.json())
-            .then(json => {
+        const loadNetwork = async () => {
+            setLoading(true);
+            try {
+                // Check IDB cache first to avoid hammering the DB
+                const cacheKey = 'atlas-geojson';
+                let json = await getCachedData(cacheKey);
+
+                if (!json) {
+                    console.log("Fetching Atlas data from API...");
+                    const res = await fetch('/api/atlas/geojson?type=all&limit=200000');
+                    if (!res.ok) throw new Error("Failed to fetch atlas network");
+                    json = await res.json();
+                    
+                    if (json.features) {
+                        try {
+                            await setCachedData(cacheKey, json);
+                            console.log("Cached Atlas data successfully.");
+                        } catch (e) {
+                            console.error("IDB Cache failed:", e);
+                        }
+                    }
+                } else {
+                    console.log("Loaded Atlas data from IDB Cache.");
+                }
+
                 setData(json);
                 if (json.metadata) setMetadata(json.metadata);
-                setLoading(false);
-            })
-            .catch(err => {
+            } catch (err: any) {
                 setError(err.message);
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+
+        loadNetwork();
     }, []);
 
     const onHover = useCallback((event: any) => {
+        // Only trigger hover if we haven't 'pinned' a selected feature via click
+        if (selectedFeature) return;
+
         const { features, lngLat } = event;
         const f = features?.[0];
         if (f) {
@@ -187,13 +216,17 @@ export default function AtlasPage() {
         } else {
             setHoverInfo(null);
         }
-    }, []);
+    }, [selectedFeature]);
 
     const onClick = useCallback((event: any) => {
-        const { features } = event;
+        const { features, lngLat } = event;
         const f = features?.[0];
-        if (f && f.properties.type === 'station') {
-            window.location.href = `/station/${f.properties.code}`;
+        if (f) {
+            // Pin the popup so it doesn't vanish on mouseleave
+            setSelectedFeature({ feature: f, lng: lngLat.lng, lat: lngLat.lat });
+            setHoverInfo(null);
+        } else {
+            setSelectedFeature(null);
         }
     }, []);
 
@@ -362,16 +395,17 @@ export default function AtlasPage() {
                         </Popup>
                     )}
 
-                    {hoverInfo && hoverInfo.feature.properties.type === 'station' && (
+                    {(selectedFeature || hoverInfo) && (selectedFeature || hoverInfo)!.feature.properties.type === 'station' && (
                         <Popup
-                            longitude={hoverInfo.lng}
-                            latitude={hoverInfo.lat}
-                            closeButton={false}
+                            longitude={(selectedFeature || hoverInfo)!.lng}
+                            latitude={(selectedFeature || hoverInfo)!.lat}
+                            closeButton={!!selectedFeature}
                             closeOnClick={false}
+                            onClose={() => setSelectedFeature(null)}
                             anchor="bottom"
                             maxWidth="240px"
                         >
-                            <StationTooltip props={hoverInfo.feature.properties} />
+                            <StationTooltip props={(selectedFeature || hoverInfo)!.feature.properties} />
                         </Popup>
                     )}
                 </Map>
@@ -454,7 +488,9 @@ function StationTooltip({ props }: { props: any }) {
             {props.is_junction && (
                 <div className={styles.tooltipBadge}>📍 Junction</div>
             )}
-            <div className={styles.tooltipHint}>Click to view full details ↗</div>
+            <Link href={`/station/${props.code}`} className={styles.tooltipHintWrapper}>
+                <div className={styles.tooltipHint}>Click to view full details ↗</div>
+            </Link>
         </div>
     );
 }

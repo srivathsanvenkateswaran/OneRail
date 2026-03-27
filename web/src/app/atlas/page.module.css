@@ -331,6 +331,11 @@
     font-weight: 700;
 }
 
+.tooltipHintWrapper {
+    text-decoration: none;
+    display: block;
+}
+
 .tooltipHint {
     margin-top: 10px;
     font-size: 0.75rem;
@@ -339,4 +344,9 @@
     text-align: right;
     border-top: 1px solid var(--border);
     padding-top: 6px;
+    transition: color 0.15s ease;
+}
+
+.tooltipHintWrapper:hover .tooltipHint {
+    color: #fff;
 }
