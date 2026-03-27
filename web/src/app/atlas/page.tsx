@@ -24,19 +24,44 @@ const lineLayerBG: LayerProps = {
         'line-color': [
             'case',
             ['==', ['get', 'status'], 'Under Construction'], '#f59e0b',
-            '#3b82f6' // BG Operational = Blue
+            // Default coloring fallback to Zone mapping, or fallback to Electrified distinction
+            ['match',
+                ['get', 'zone'],
+                'SR', '#3b82f6',    // Blue
+                'SWR', '#06b6d4',   // Cyan
+                'SCR', '#8b5cf6',   // Purple
+                'CR', '#d946ef',    // Fuchsia
+                'WR', '#f43f5e',    // Rose
+                'NR', '#f59e0b',    // Amber
+                'NCR', '#eab308',   // Yellow
+                'NER', '#84cc16',   // Lime
+                'ER', '#10b981',    // Emerald
+                'ECoR', '#14b8a6',  // Teal
+                'SECR', '#6366f1',  // Indigo
+                'SER', '#ec4899',   // Pink
+                'NFR', '#22c55e',   // Green
+                'NWR', '#f97316',   // Orange
+                'WCR', '#0ea5e9',   // Light Blue
+                'ECR', '#a855f7',   // Purple alt
+                ['case', ['==', ['get', 'electrified'], true], '#60a5fa', '#f87171'] // Fallback: Blue if Electrified, Red if Not
+            ]
         ],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.8, 8, 1.8, 12, 3.5],
+        'line-width': [
+            'interpolate', ['linear'], ['zoom'],
+            4, ['case', ['==', ['get', 'track_type'], 'Double'], 1.4, 0.8],
+            8, ['case', ['==', ['get', 'track_type'], 'Double'], 2.8, 1.8],
+            12, ['case', ['==', ['get', 'track_type'], 'Double'], 5.0, 3.5]
+        ],
         'line-opacity': [
             'case',
             ['==', ['get', 'status'], 'Under Construction'], 0.6,
-            0.85
+            0.9
         ],
         'line-dasharray': [
             'case',
             ['==', ['get', 'status'], 'Under Construction'],
             ['literal', [4, 3]],
-            ['literal', [1, 0]]
+            ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]] // Dashed line if non-electrified
         ]
     }
 };
@@ -51,6 +76,7 @@ const lineLayerMG: LayerProps = {
         'line-color': '#10b981', // MG = Emerald
         'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 8, 1.4, 12, 2.5],
         'line-opacity': 0.8,
+        'line-dasharray': ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]]
     }
 };
 
@@ -64,6 +90,7 @@ const lineLayerNG: LayerProps = {
         'line-color': '#a78bfa', // NG = Violet
         'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 8, 1.2, 12, 2],
         'line-opacity': 0.75,
+        'line-dasharray': ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]]
     }
 };
 
@@ -139,7 +166,7 @@ export default function AtlasPage() {
 
     useEffect(() => {
         setLoading(true);
-        fetch('/api/atlas/geojson?type=all')
+        fetch('/api/atlas/geojson?type=all&limit=200000')
             .then(res => res.json())
             .then(json => {
                 setData(json);
@@ -159,6 +186,14 @@ export default function AtlasPage() {
             setHoverInfo({ feature: f, lng: lngLat.lng, lat: lngLat.lat });
         } else {
             setHoverInfo(null);
+        }
+    }, []);
+
+    const onClick = useCallback((event: any) => {
+        const { features } = event;
+        const f = features?.[0];
+        if (f && f.properties.type === 'station') {
+            window.location.href = `/station/${f.properties.code}`;
         }
     }, []);
 
@@ -274,7 +309,7 @@ export default function AtlasPage() {
                             </div>
                             <div className={styles.legendItem}>
                                 <div className={styles.legendDashed} />
-                                <span>Under Construction</span>
+                                <span>Non-Electrified / Construction</span>
                             </div>
                             <div className={styles.legendItem}>
                                 <div className={styles.legendDot} style={{ background: '#f59e0b' }} />
@@ -295,9 +330,10 @@ export default function AtlasPage() {
                     ref={mapRef}
                     initialViewState={{ longitude: 78.9629, latitude: 22.5937, zoom: 4.5 }}
                     mapStyle={MAP_STYLE}
-                    interactiveLayerIds={layers.BG ? ['tracks-bg'] : []}
+                    interactiveLayerIds={[...(layers.BG ? ['tracks-bg'] : []), 'stations']}
                     onMouseMove={onHover}
                     onMouseLeave={() => setHoverInfo(null)}
+                    onClick={onClick}
                     cursor={hoverInfo ? 'pointer' : 'grab'}
                 >
                     <NavigationControl position="bottom-right" />
@@ -305,11 +341,11 @@ export default function AtlasPage() {
 
                     {data && (
                         <Source id="atlas" type="geojson" data={data}>
-                            {layers.BG && <Layer {...lineLayerBG} filter={bgFilter} />}
-                            {layers.MG && <Layer {...lineLayerMG} filter={mgFilter} />}
-                            {layers.NG && <Layer {...lineLayerNG} filter={ngFilter} />}
-                            {layers.stations && <Layer {...stationLayer} />}
-                            {layers.stations && <Layer {...stationLabelLayer} />}
+                            {layers.BG && <Layer {...(lineLayerBG as any)} filter={bgFilter} />}
+                            {layers.MG && <Layer {...(lineLayerMG as any)} filter={mgFilter} />}
+                            {layers.NG && <Layer {...(lineLayerNG as any)} filter={ngFilter} />}
+                            {layers.stations && <Layer {...(stationLayer as any)} />}
+                            {layers.stations && <Layer {...(stationLabelLayer as any)} />}
                         </Source>
                     )}
 
@@ -418,6 +454,7 @@ function StationTooltip({ props }: { props: any }) {
             {props.is_junction && (
                 <div className={styles.tooltipBadge}>📍 Junction</div>
             )}
+            <div className={styles.tooltipHint}>Click to view full details ↗</div>
         </div>
     );
 }

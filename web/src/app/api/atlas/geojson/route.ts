@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
                     status: true,
                     track_type: true,
                     path_coordinates: true,
-                    from_station: { select: { latitude: true, longitude: true } },
+                    from_station: { select: { latitude: true, longitude: true, zone_code: true } },
                     to_station: { select: { latitude: true, longitude: true } }
                 },
                 take: limit
@@ -94,7 +94,8 @@ export async function GET(req: NextRequest) {
                         gauge: seg.gauge,
                         electrified: seg.electrified,
                         status: seg.status,
-                        track_type: seg.track_type
+                        track_type: seg.track_type,
+                        zone: seg.from_station?.zone_code || null
                     }
                 });
             }

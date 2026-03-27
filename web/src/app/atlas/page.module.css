@@ -320,12 +320,23 @@
 .valAmber { color: #fbbf24; }
 
 .tooltipBadge {
+    display: inline-block;
     margin-top: 8px;
     padding: 3px 8px;
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
     border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 12px;
-    font-size: 0.72rem;
-    color: #fbbf24;
-    display: inline-block;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.tooltipHint {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+    text-align: right;
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
 }
