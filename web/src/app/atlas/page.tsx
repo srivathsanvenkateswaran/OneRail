@@ -3,84 +3,53 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Map, {
     Source, Layer, Popup,
-    NavigationControl, ScaleControl,
-    MapRef
+    NavigationControl, ScaleControl
 } from 'react-map-gl/maplibre';
+import type { MapRef, LayerProps } from 'react-map-gl/maplibre';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import styles from './page.module.css';
-import type { LayerProps } from 'react-map-gl/maplibre';
 import { getCachedData, setCachedData } from '@/lib/clientCache';
 import Link from 'next/link';
 
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-// ── Zone fill colors (used in both fill layer + legend) ──────────────────────
-export const ZONE_COLORS: Record<string, string> = {
-    SR:   '#3b82f6',  // Blue         – Southern
-    SWR:  '#06b6d4',  // Cyan         – South Western
-    SCR:  '#8b5cf6',  // Purple       – South Central
-    CR:   '#d946ef',  // Fuchsia      – Central
-    WR:   '#f43f5e',  // Rose         – Western
-    NR:   '#f59e0b',  // Amber        – Northern
-    NCR:  '#eab308',  // Yellow       – North Central
-    NER:  '#84cc16',  // Lime         – North Eastern
-    ER:   '#10b981',  // Emerald      – Eastern
-    ECoR: '#14b8a6',  // Teal         – East Coast
-    SECR: '#6366f1',  // Indigo       – South East Central
-    SER:  '#ec4899',  // Pink         – South Eastern
-    NFR:  '#22c55e',  // Green        – Northeast Frontier
-    NWR:  '#f97316',  // Orange       – North Western
-    WCR:  '#0ea5e9',  // Sky          – West Central
-    ECR:  '#a855f7',  // Violet       – East Central
-    KR:   '#fb7185',  // Red-pink     – Konkan
-    CLW:  '#94a3b8',  // Slate        – production unit
+// ── Zone names + colors for lookup ──────────────────────────────────────────
+export const ZONE_METADATA: Record<string, { color: string; name: string }> = {
+    SR:   { color: '#3b82f6', name: 'Southern Railway' },
+    SWR:  { color: '#06b6d4', name: 'South Western Railway' },
+    SCR:  { color: '#8b5cf6', name: 'South Central Railway' },
+    CR:   { color: '#d946ef', name: 'Central Railway' },
+    WR:   { color: '#f43f5e', name: 'Western Railway' },
+    NR:   { color: '#f59e0b', name: 'Northern Railway' },
+    NCR:  { color: '#eab308', name: 'North Central Railway' },
+    NER:  { color: '#84cc16', name: 'North Eastern Railway' },
+    ER:   { color: '#10b981', name: 'Eastern Railway' },
+    ECoR: { color: '#14b8a6', name: 'East Coast Railway' },
+    SECR: { color: '#6366f1', name: 'South East Central Railway' },
+    SER:  { color: '#ec4899', name: 'South Eastern Railway' },
+    NFR:  { color: '#22c55e', name: 'Northeast Frontier Railway' },
+    NWR:  { color: '#f97316', name: 'North Western Railway' },
+    WCR:  { color: '#0ea5e9', name: 'West Central Railway' },
+    ECR:  { color: '#a855f7', name: 'East Central Railway' },
+    KR:   { color: '#fb7185', name: 'Konkan Railway' },
 };
 
-// Build MapLibre 'match' expression from the palette
-const zoneMatchExpr = (): any[] => {
-    const expr: any[] = ['match', ['get', 'zone']];
-    for (const [code, color] of Object.entries(ZONE_COLORS)) {
-        expr.push(code, color);
-    }
-    expr.push('#94a3b8'); // fallback
-    return expr;
-};
-
-// ── Zone area fill layer (rendered from a separate /api/atlas/zones source) ──
-const zoneFillLayer: LayerProps = {
-    id: 'zone-fill',
-    type: 'fill',
-    source: 'zones',
-    paint: {
-        'fill-color': zoneMatchExpr(),
-        'fill-opacity': 0.07,
-    }
-};
-
-const zoneBorderLayer: LayerProps = {
-    id: 'zone-border',
-    type: 'line',
-    source: 'zones',
-    paint: {
-        'line-color': zoneMatchExpr(),
-        'line-width': 1,
-        'line-opacity': 0.25,
-        'line-dasharray': ['literal', [4, 4]]
-    }
-};
+// Build MapLibre 'match' expression from the palette if still needed for anything
+const getZoneColor = (code: string) => ZONE_METADATA[code]?.color || '#94a3b8';
 
 // ── Track line layers — colored by track_type, NOT zone ──────────────────────
 
-// BG Tracks: Single=white-grey, Double=blue, Triple/Multi=gold
+// BG Tracks: Single/Unknown=blue, Double=deeper blue, Triple/Multi=gold/orange
 const trackTypeColor: any = [
     'case',
     ['==', ['get', 'status'], 'Under Construction'], '#f59e0b',
     ['match', ['get', 'track_type'],
-        'Single',    '#cbd5e1',   // Slate-300
-        'Double',    '#60a5fa',   // Blue-400
-        'Triple',    '#fbbf24',   // Amber-400
-        'Quadruple', '#f97316',   // Orange-500
-        '#94a3b8'                 // Fallback slate
+        'Single',    '#3b82f6',   // IR Blue
+        'Double',    '#2563eb',   // Deeper Blue
+        'Triple',    '#fbbf24',   // Amber/Gold
+        'Quadruple', '#f97316',   // Orange
+        '#3b82f6'                 // Fallback to IR Blue
     ]
 ];
 
@@ -134,10 +103,22 @@ const lineLayerNG: LayerProps = {
     filter: ['all', ['==', 'type', 'track'], ['==', 'gauge', 'NG']],
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-        'line-color': '#a78bfa',  // Violet — always distinct
-        'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 8, 1.2, 12, 2],
-        'line-opacity': 0.75,
+        'line-color': '#f472b6', // Changed from '#a78bfa'
+        'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 8, 1.2, 12, 2.2], // Changed from 2
+        'line-opacity': 0.8, // Changed from 0.75
         'line-dasharray': ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]]
+    }
+};
+
+const tracksClickLayer: LayerProps = {
+    id: 'tracks-click-surface',
+    type: 'line',
+    source: 'atlas',
+    filter: ['==', 'type', 'track'],
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: {
+        'line-width': 20, // Huge hit surface
+        'line-color': 'transparent',
     }
 };
 
@@ -148,15 +129,43 @@ const stationLayer: LayerProps = {
     filter: ['==', 'type', 'station'],
     minzoom: 6,
     paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2, 9, 3.5, 13, 6],
+        'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            6, ['case', 
+                ['==', ['get', 'is_junction'], true], 3.5, 
+                ['==', ['get', 'is_terminus'], true], 3.5,
+                1.5
+            ],
+            9, ['case', 
+                ['==', ['get', 'is_junction'], true], 6, 
+                ['==', ['get', 'is_terminus'], true], 6,
+                2.5
+            ],
+            13, ['case', 
+                ['==', ['get', 'is_junction'], true], 10, 
+                ['==', ['get', 'is_terminus'], true], 10,
+                4
+            ]
+        ],
         'circle-color': [
             'case',
-            ['==', ['get', 'is_junction'], true], '#f59e0b',
-            '#e2e8f0'
+            ['==', ['get', 'is_junction'], true], '#f59e0b', // Amber for junctions
+            ['==', ['get', 'is_terminus'], true], '#ef4444', // Ruby for terminals
+            '#ffffff'                                     // White for stops
         ],
-        'circle-stroke-width': 1,
-        'circle-stroke-color': '#1e293b',
-        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0, 7, 1]
+        'circle-stroke-width': [
+            'case',
+            ['==', ['get', 'is_junction'], true], 2.5,
+            ['==', ['get', 'is_terminus'], true], 2.5,
+            1
+        ],
+        'circle-stroke-color': [
+            'case',
+            ['==', ['get', 'is_junction'], true], '#b45309', // Dark amber stroke
+            ['==', ['get', 'is_terminus'], true], '#b91c1c', // Dark ruby stroke
+            '#1e293b'                                     // Slate stroke
+        ],
+        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.4, 8, 1]
     }
 };
 
@@ -164,8 +173,15 @@ const stationLabelLayer: LayerProps = {
     id: 'station-labels',
     type: 'symbol',
     source: 'atlas',
-    filter: ['==', 'type', 'station'],
-    minzoom: 10,
+    filter: ['all', 
+        ['==', 'type', 'station'],
+        ['any', 
+            ['>', ['zoom'], 10],
+            ['==', ['get', 'is_junction'], true],
+            ['==', ['get', 'is_terminus'], true]
+        ]
+    ],
+    minzoom: 8,
     layout: {
         'text-field': ['get', 'name'],
         'text-font': ['Noto Sans Regular'],
@@ -181,8 +197,6 @@ const stationLabelLayer: LayerProps = {
     }
 };
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
 interface HoverInfo {
     lng: number;
     lat: number;
@@ -197,11 +211,91 @@ interface LayerVisibility {
     construction: boolean;
 }
 
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+export function LayerToggle({ color, label, active, onToggle, isCircle, isDashed }: {
+    color: string;
+    label: string;
+    active: boolean;
+    onToggle: () => void;
+    isCircle?: boolean;
+    isDashed?: boolean;
+}) {
+    return (
+        <button className={`${styles.layerToggle} ${active ? styles.layerActive : styles.layerInactive}`} onClick={onToggle}>
+            {isCircle ? (
+                <div className={styles.toggleCircle} style={{ background: active ? color : '#374151', borderColor: color }} />
+            ) : isDashed ? (
+                <div className={styles.toggleDashed} style={{ borderColor: active ? color : '#374151' }} />
+            ) : (
+                <div className={styles.toggleLine} style={{ background: active ? color : '#374151' }} />
+            )}
+            <span>{label}</span>
+            <span className={styles.toggleCheck}>{active ? '✓' : ''}</span>
+        </button>
+    );
+}
+
+export function TrackTooltip({ props }: { props: any }) {
+    const zoneName = props.zone ? (ZONE_METADATA[props.zone]?.name || props.zone) : null;
+
+    return (
+        <div className={styles.tooltip}>
+            <div className={styles.tooltipTitle}>Railway Section</div>
+            <div className={styles.tooltipRow}>
+                <span className={styles.tooltipKey}>Endpoints</span>
+                <span className={styles.tooltipVal}>{props.from} ↔ {props.to}</span>
+            </div>
+            {zoneName && (
+                <div className={styles.tooltipRow}>
+                    <span className={styles.tooltipKey}>Zone</span>
+                    <span className={styles.tooltipVal} title={props.zone}>{zoneName}</span>
+                </div>
+            )}
+            <div className={styles.tooltipRow}>
+                <span className={styles.tooltipKey}>Distance</span>
+                <span className={styles.tooltipVal}>{props.distance_km?.toFixed(1) || '—'} km</span>
+            </div>
+            <div className={styles.tooltipRow}>
+                <span className={styles.tooltipKey}>Track</span>
+                <span className={styles.tooltipVal}>{props.track_type || 'Single'} Line</span>
+            </div>
+            <div className={styles.tooltipRow}>
+                <span className={styles.tooltipKey}>Electrified</span>
+                <span className={styles.tooltipVal}>{props.electrified ? '⚡ Yes' : 'No'}</span>
+            </div>
+        </div>
+    );
+}
+
+export function StationTooltip({ props }: { props: any }) {
+    const zoneName = props.zone ? (ZONE_METADATA[props.zone]?.name || props.zone) : null;
+
+    return (
+        <div className={styles.tooltip}>
+            <div className={styles.tooltipTitle}>{props.name}</div>
+            <div className={styles.tooltipRow}>
+                <span className={styles.tooltipKey}>Code</span>
+                <span className={styles.tooltipVal}>{props.code}</span>
+            </div>
+            {zoneName && (
+                <div className={styles.tooltipRow}>
+                    <span className={styles.tooltipKey}>Zone</span>
+                    <span className={styles.tooltipVal} title={props.zone}>{zoneName}</span>
+                </div>
+            )}
+            {props.is_junction && <div className={styles.tooltipBadge}>📍 Junction</div>}
+            <Link href={`/station/${props.code}`} target="_blank" className={styles.tooltipHintWrapper}>
+                <div className={styles.tooltipHint}>Click to view full details ↗</div>
+            </Link>
+        </div>
+    );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function AtlasPage() {
     const [data, setData] = useState<any>(null);
-    const [zoneData, setZoneData] = useState<any>(null);
     const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
     const [selectedFeature, setSelectedFeature] = useState<HoverInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -225,28 +319,15 @@ export default function AtlasPage() {
         const loadNetwork = async () => {
             setLoading(true);
             try {
-                // Check IDB cache first to avoid hammering the DB
-                const cacheKey = 'atlas-geojson-v4';
+                const cacheKey = 'atlas-geojson-v12';
                 let json = await getCachedData(cacheKey);
 
                 if (!json) {
-                    console.log("Fetching Atlas data from API...");
                     const res = await fetch('/api/atlas/geojson?type=all&limit=200000');
                     if (!res.ok) throw new Error("Failed to fetch atlas network");
                     json = await res.json();
-                    
-                    if (json.features) {
-                        try {
-                            await setCachedData(cacheKey, json);
-                            console.log("Cached Atlas data successfully.");
-                        } catch (e) {
-                            console.error("IDB Cache failed:", e);
-                        }
-                    }
-                } else {
-                    console.log("Loaded Atlas data from IDB Cache.");
+                    if (json.features) await setCachedData(cacheKey, json);
                 }
-
                 setData(json);
                 if (json.metadata) setMetadata(json.metadata);
             } catch (err: any) {
@@ -255,28 +336,18 @@ export default function AtlasPage() {
                 setLoading(false);
             }
         };
-
         loadNetwork();
     }, []);
 
-    // Load zone polygons (fast, <18 features)
-    useEffect(() => {
-        fetch('/api/atlas/zones')
-            .then(r => r.json())
-            .then(setZoneData)
-            .catch(console.error);
-    }, []);
-
-    const onHover = useCallback((event: any) => {
-        // Only trigger hover if we haven't 'pinned' a selected feature via click
+    const onHover = useCallback((e: any) => {
         if (selectedFeature) return;
-
-        const { features, lngLat } = event;
-        const f = features?.[0];
-        if (f) {
-            setHoverInfo({ feature: f, lng: lngLat.lng, lat: lngLat.lat });
+        const feature = e.features?.[0];
+        if (feature) {
+            setHoverInfo({ lng: e.lngLat.lng, lat: e.lngLat.lat, feature: feature });
+            e.target.getCanvas().style.cursor = 'pointer';
         } else {
             setHoverInfo(null);
+            e.target.getCanvas().style.cursor = '';
         }
     }, [selectedFeature]);
 
@@ -284,7 +355,6 @@ export default function AtlasPage() {
         const { features, lngLat } = event;
         const f = features?.[0];
         if (f) {
-            // Pin the popup so it doesn't vanish on mouseleave
             setSelectedFeature({ feature: f, lng: lngLat.lng, lat: lngLat.lat });
             setHoverInfo(null);
         } else {
@@ -296,7 +366,6 @@ export default function AtlasPage() {
         setLayers(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    // Build the filter for each gauge layer based on visibility + construction toggle
     const bgFilter: any = layers.construction
         ? ['all', ['==', 'type', 'track'], ['==', 'gauge', 'BG']]
         : ['all', ['==', 'type', 'track'], ['==', 'gauge', 'BG'], ['==', 'status', 'Operational']];
@@ -309,16 +378,10 @@ export default function AtlasPage() {
 
     return (
         <div className={styles.container}>
-            {/* ── Side Panel ── */}
             <div className={`${styles.panel} ${panelOpen ? styles.panelOpen : styles.panelClosed}`}>
-                <button
-                    className={styles.panelToggle}
-                    onClick={() => setPanelOpen(v => !v)}
-                    title={panelOpen ? 'Collapse panel' : 'Expand panel'}
-                >
+                <button className={styles.panelToggle} onClick={() => setPanelOpen(v => !v)}>
                     {panelOpen ? '◀' : '▶'}
                 </button>
-
                 {panelOpen && (
                     <>
                         <div className={styles.panelHeader}>
@@ -328,113 +391,41 @@ export default function AtlasPage() {
                                 <p className={styles.overlayDesc}>Indian Railways Network Map</p>
                             </div>
                         </div>
-
-                        {loading && (
-                            <div className={styles.loadingState}>
-                                <div className={styles.spinner} />
-                                <span>Loading network data...</span>
-                            </div>
-                        )}
-
-                        {error && (
-                            <div className={styles.errorState}>
-                                ⚠️ {error}
-                            </div>
-                        )}
-
+                        {loading && <div className={styles.loadingState}><div className={styles.spinner} /><span>Loading...</span></div>}
+                        {error && <div className={styles.errorState}>⚠️ {error}</div>}
                         {metadata && (
                             <div className={styles.statsGrid}>
-                                <div className={styles.statCard}>
-                                    <div className={styles.statNum}>{metadata.tracks.toLocaleString()}</div>
-                                    <div className={styles.statLabel}>Track Segments</div>
-                                </div>
-                                <div className={styles.statCard}>
-                                    <div className={styles.statNum}>{metadata.stations.toLocaleString()}</div>
-                                    <div className={styles.statLabel}>Stations</div>
-                                </div>
+                                <div className={styles.statCard}><div className={styles.statNum}>{metadata.tracks.toLocaleString()}</div><div className={styles.statLabel}>Tracks</div></div>
+                                <div className={styles.statCard}><div className={styles.statNum}>{metadata.stations.toLocaleString()}</div><div className={styles.statLabel}>Stations</div></div>
                             </div>
                         )}
-
-                        {/* Layer Toggles */}
                         <div className={styles.section}>
                             <div className={styles.sectionTitle}>Track Gauge</div>
-                            <LayerToggle
-                                color="#3b82f6"
-                                label="Broad Gauge (BG)"
-                                active={layers.BG}
-                                onToggle={() => toggleLayer('BG')}
-                            />
-                            <LayerToggle
-                                color="#10b981"
-                                label="Metre Gauge (MG)"
-                                active={layers.MG}
-                                onToggle={() => toggleLayer('MG')}
-                            />
-                            <LayerToggle
-                                color="#a78bfa"
-                                label="Narrow Gauge (NG)"
-                                active={layers.NG}
-                                onToggle={() => toggleLayer('NG')}
-                            />
+                            <LayerToggle color="#3b82f6" label="Broad Gauge (BG)" active={layers.BG} onToggle={() => toggleLayer('BG')} />
+                            <LayerToggle color="#10b981" label="Metre Gauge (MG)" active={layers.MG} onToggle={() => toggleLayer('MG')} />
+                            <LayerToggle color="#a78bfa" label="Narrow Gauge (NG)" active={layers.NG} onToggle={() => toggleLayer('NG')} />
                         </div>
-
                         <div className={styles.section}>
                             <div className={styles.sectionTitle}>Overlays</div>
-                            <LayerToggle
-                                color="#e2e8f0"
-                                label="Stations"
-                                active={layers.stations}
-                                onToggle={() => toggleLayer('stations')}
-                                isCircle
-                            />
-                            <LayerToggle
-                                color="#f59e0b"
-                                label="Under Construction"
-                                active={layers.construction}
-                                onToggle={() => toggleLayer('construction')}
-                                isDashed
-                            />
-                        </div>
-
-                        <div className={styles.section}>
-                            <div className={styles.sectionTitle}>Legend</div>
-                            <div className={styles.legendItem}>
-                                <div className={styles.legendLine} style={{ background: '#3b82f6' }} />
-                                <span>Operational (BG)</span>
-                            </div>
-                            <div className={styles.legendItem}>
-                                <div className={styles.legendDashed} />
-                                <span>Non-Electrified / Construction</span>
-                            </div>
-                            <div className={styles.legendItem}>
-                                <div className={styles.legendDot} style={{ background: '#f59e0b' }} />
-                                <span>Junction / Major Station</span>
-                            </div>
-                        </div>
-
-                        <div className={styles.footer}>
-                            Data: OpenStreetMap contributors
+                            <LayerToggle color="#e2e8f0" label="Stations" active={layers.stations} onToggle={() => toggleLayer('stations')} isCircle />
+                            <LayerToggle color="#f59e0b" label="Construction" active={layers.construction} onToggle={() => toggleLayer('construction')} isDashed />
                         </div>
                     </>
                 )}
             </div>
-
-            {/* ── Map ── */}
             <div className={styles.mapWrapper}>
                 {mapLoaded && (
                     <Map
                         ref={mapRef}
+                        mapLib={maplibregl}
                         initialViewState={viewState}
-                        onMoveEnd={(e) => {
-                            const state = {
-                                longitude: e.viewState.longitude,
-                                latitude: e.viewState.latitude,
-                                zoom: e.viewState.zoom
-                            };
+                        onMove={(evt) => {
+                            const state = { longitude: evt.viewState.longitude, latitude: evt.viewState.latitude, zoom: evt.viewState.zoom };
+                            setViewState(state);
                             localStorage.setItem('atlasViewState', JSON.stringify(state));
                         }}
                         mapStyle={MAP_STYLE}
-                        interactiveLayerIds={[...(layers.BG ? ['tracks-bg'] : []), 'stations']}
+                        interactiveLayerIds={['tracks-click-surface', 'stations']}
                         onMouseMove={onHover}
                         onMouseLeave={() => setHoverInfo(null)}
                         onClick={onClick}
@@ -442,136 +433,30 @@ export default function AtlasPage() {
                     >
                         <NavigationControl position="bottom-right" />
                         <ScaleControl position="bottom-left" unit="metric" />
-
-                    {/* Zone fill polygons — rendered BEHIND tracks */}
-                    {zoneData && (
-                        <Source id="zones" type="geojson" data={zoneData}>
-                            <Layer {...(zoneFillLayer as any)} />
-                            <Layer {...(zoneBorderLayer as any)} />
-                        </Source>
-                    )}
-
-                    {/* Track + station features on top */}
-                    {data && (
-                        <Source id="atlas" type="geojson" data={data}>
-                            {layers.BG && <Layer {...(lineLayerBG as any)} filter={bgFilter} />}
-                            {layers.MG && <Layer {...(lineLayerMG as any)} filter={mgFilter} />}
-                            {layers.NG && <Layer {...(lineLayerNG as any)} filter={ngFilter} />}
-                            {layers.stations && <Layer {...(stationLayer as any)} />}
-                            {layers.stations && <Layer {...(stationLabelLayer as any)} />}
-                        </Source>
-                    )}
-
-                    {hoverInfo && hoverInfo.feature.properties.type === 'track' && (
-                        <Popup
-                            longitude={hoverInfo.lng}
-                            latitude={hoverInfo.lat}
-                            closeButton={false}
-                            closeOnClick={false}
-                            anchor="bottom"
-                            maxWidth="280px"
-                        >
-                            <TrackTooltip props={hoverInfo.feature.properties} />
-                        </Popup>
-                    )}
-
-                    {(selectedFeature || hoverInfo) && (selectedFeature || hoverInfo)!.feature.properties.type === 'station' && (
-                        <Popup
-                            longitude={(selectedFeature || hoverInfo)!.lng}
-                            latitude={(selectedFeature || hoverInfo)!.lat}
-                            closeButton={!!selectedFeature}
-                            closeOnClick={false}
-                            onClose={() => setSelectedFeature(null)}
-                            anchor="bottom"
-                            maxWidth="240px"
-                        >
-                            <StationTooltip props={(selectedFeature || hoverInfo)!.feature.properties} />
-                        </Popup>
-                    )}
-                </Map>
+                        {data && (
+                            <Source id="atlas" type="geojson" data={data}>
+                                {layers.BG && <Layer {...(lineLayerBG as any)} filter={bgFilter} />}
+                                {layers.MG && <Layer {...(lineLayerMG as any)} filter={mgFilter} />}
+                                {layers.NG && <Layer {...(lineLayerNG as any)} filter={ngFilter} />}
+                                <Layer {...(tracksClickLayer as any)} />
+                                {layers.stations && <Layer {...(stationLayer as any)} />}
+                                {layers.stations && <Layer {...(stationLabelLayer as any)} />}
+                            </Source>
+                        )}
+                        {hoverInfo && hoverInfo.feature.properties.type === 'track' && (
+                            <Popup longitude={hoverInfo.lng} latitude={hoverInfo.lat} closeButton={false} anchor="bottom">
+                                <TrackTooltip props={hoverInfo.feature.properties} />
+                            </Popup>
+                        )}
+                        {(selectedFeature || hoverInfo) && (selectedFeature || hoverInfo)!.feature.properties.type === 'station' && (
+                            <Popup longitude={(selectedFeature || hoverInfo)!.lng} latitude={(selectedFeature || hoverInfo)!.lat}
+                                closeButton={!!selectedFeature} onClose={() => setSelectedFeature(null)} anchor="bottom">
+                                <StationTooltip props={(selectedFeature || hoverInfo)!.feature.properties} />
+                            </Popup>
+                        )}
+                    </Map>
                 )}
             </div>
-        </div>
-    );
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function LayerToggle({ color, label, active, onToggle, isCircle, isDashed }: {
-    color: string;
-    label: string;
-    active: boolean;
-    onToggle: () => void;
-    isCircle?: boolean;
-    isDashed?: boolean;
-}) {
-    return (
-        <button className={`${styles.layerToggle} ${active ? styles.layerActive : styles.layerInactive}`} onClick={onToggle}>
-            {isCircle ? (
-                <div className={styles.toggleCircle} style={{ background: active ? color : '#374151', borderColor: color }} />
-            ) : isDashed ? (
-                <div className={styles.toggleDashed} style={{ borderColor: active ? color : '#374151' }} />
-            ) : (
-                <div className={styles.toggleLine} style={{ background: active ? color : '#374151' }} />
-            )}
-            <span>{label}</span>
-            <span className={styles.toggleCheck}>{active ? '✓' : ''}</span>
-        </button>
-    );
-}
-
-function TrackTooltip({ props }: { props: any }) {
-    return (
-        <div className={styles.tooltip}>
-            <div className={styles.tooltipTitle}>
-                {props.gauge || 'BG'} Track Segment
-            </div>
-            <div className={styles.tooltipRow}>
-                <span className={styles.tooltipKey}>Status</span>
-                <span className={`${styles.tooltipVal} ${props.status === 'Operational' ? styles.valGreen : styles.valAmber}`}>
-                    {props.status}
-                </span>
-            </div>
-            <div className={styles.tooltipRow}>
-                <span className={styles.tooltipKey}>Gauge</span>
-                <span className={styles.tooltipVal}>{
-                    props.gauge === 'BG' ? 'Broad Gauge (1676mm)' :
-                    props.gauge === 'MG' ? 'Metre Gauge (1000mm)' :
-                    'Narrow Gauge'
-                }</span>
-            </div>
-            <div className={styles.tooltipRow}>
-                <span className={styles.tooltipKey}>Track</span>
-                <span className={styles.tooltipVal}>{props.track_type || 'Single'}</span>
-            </div>
-            <div className={styles.tooltipRow}>
-                <span className={styles.tooltipKey}>Electrified</span>
-                <span className={styles.tooltipVal}>{props.electrified ? '⚡ Yes' : 'No'}</span>
-            </div>
-        </div>
-    );
-}
-
-function StationTooltip({ props }: { props: any }) {
-    return (
-        <div className={styles.tooltip}>
-            <div className={styles.tooltipTitle}>{props.name}</div>
-            <div className={styles.tooltipRow}>
-                <span className={styles.tooltipKey}>Code</span>
-                <span className={styles.tooltipVal}>{props.code}</span>
-            </div>
-            {props.zone && (
-                <div className={styles.tooltipRow}>
-                    <span className={styles.tooltipKey}>Zone</span>
-                    <span className={styles.tooltipVal}>{props.zone}</span>
-                </div>
-            )}
-            {props.is_junction && (
-                <div className={styles.tooltipBadge}>📍 Junction</div>
-            )}
-            <Link href={`/station/${props.code}`} target="_blank" className={styles.tooltipHintWrapper}>
-                <div className={styles.tooltipHint}>Click to view full details ↗</div>
-            </Link>
         </div>
     );
 }

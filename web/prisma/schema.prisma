@@ -177,7 +177,29 @@ model RakeMember {
 }
 
 // ─────────────────────────────────────────────
-// TRACK SEGMENT — For map rendering
+// TRACK SECTION — Collection of segments between junctions/terminus
+// ─────────────────────────────────────────────
+model TrackSection {
+  id                Int            @id @default(autoincrement())
+  from_node_code    String         // Junction or Terminus
+  to_node_code      String         // Junction or Terminus
+  distance_km       Float
+  mps               Int?           // Max Permissible Speed
+  // Single, Double, Multi
+  track_type        String?
+  electrified       Boolean        @default(false)
+  gauge             String         @default("BG")
+  zone_code         String?
+  num_stations      Int            @default(0)
+  
+  segments          TrackSegment[]
+  
+  // Combined path_coordinates for easier map rendering of the whole section
+  path_coordinates  Json?
+}
+
+// ─────────────────────────────────────────────
+// TRACK SEGMENT — Physical line between two ADJACENT stops
 // ─────────────────────────────────────────────
 model TrackSegment {
   id                Int     @id @default(autoincrement())
@@ -192,6 +214,10 @@ model TrackSegment {
   // Operational, Under Construction, Proposed, etc.
   status            String  @default("Operational")
   zone_code         String?
+  mps               Int?    // Max Permissible Speed
+  
+  section_id        Int?
+  section           TrackSection? @relation(fields: [section_id], references: [id])
   
   // Array of [longitude, latitude] coordinates framing the exact path (GeoJSON LineString)
   path_coordinates  Json?

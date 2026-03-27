@@ -34,58 +34,25 @@ export async function GET(req: NextRequest) {
     try {
         const features: any[] = [];
 
-        // ── TRACKS ────────────────────────────────────────────────────────────
+        // ── TRACK SECTIONS (Logical corridors) ────────────────────────────────
         if (type === 'all' || type === 'tracks') {
-            // Use raw SQL to include zone_code (Prisma client types may lag behind schema changes)
-            const whereClauses: string[] = [];
-            const sqlParams: any[] = [];
-            let paramIdx = 1;
-
-            if (gaugeFilter) {
-                whereClauses.push(`t.gauge = $${paramIdx++}`);
-                sqlParams.push(gaugeFilter);
-            }
-            if (statusFilter) {
-                whereClauses.push(`t.status = $${paramIdx++}`);
-                sqlParams.push(statusFilter);
-            }
-            sqlParams.push(limit);
-            const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
             const rawSql = `
-                SELECT t.id, t.from_station_code, t.to_station_code,
-                       t.gauge, t.electrified, t.status, t.track_type, t.zone_code,
-                       t.path_coordinates,
-                       fs.longitude AS from_lon, fs.latitude AS from_lat,
-                       ts.longitude AS to_lon,   ts.latitude AS to_lat
-                FROM "TrackSegment" t
-                LEFT JOIN "Station" fs ON fs.station_code = t.from_station_code
-                LEFT JOIN "Station" ts ON ts.station_code = t.to_station_code
-                ${whereStr}
-                LIMIT $${paramIdx}
+                SELECT id, from_node_code, to_node_code, 
+                       distance_km, num_stations, track_type, electrified, gauge,
+                       zone_code as zone, mps, path_coordinates
+                FROM "TrackSection"
+                LIMIT $1
             `;
+            const sections: any[] = await prisma.$queryRawUnsafe(rawSql, limit);
 
-            const trackSegments: any[] = await prisma.$queryRawUnsafe(rawSql, ...sqlParams);
+            for (const sec of sections) {
+                const rawPath = sec.path_coordinates;
+                const coords = typeof rawPath === 'string' ? JSON.parse(rawPath) : rawPath;
+                
+                if (!coords || !Array.isArray(coords) || coords.length < 2) continue;
 
-            for (const seg of trackSegments) {
-                let coords: number[][] = [];
-
-                const rawPath = seg.path_coordinates;
-                const parsedPath = typeof rawPath === 'string' ? JSON.parse(rawPath) : rawPath;
-                if (parsedPath && Array.isArray(parsedPath) && parsedPath.length >= 2) {
-                    coords = parsedPath;
-                } else if (seg.from_lon && seg.from_lat && seg.to_lon && seg.to_lat) {
-                    coords = [
-                        [seg.from_lon, seg.from_lat],
-                        [seg.to_lon, seg.to_lat]
-                    ];
-                }
-
-                if (coords.length < 2) continue;
-
-                // bbox filter — check if any coord falls within viewport
                 if (bbox) {
-                    const inBbox = coords.some(([lon, lat]) =>
+                    const inBbox = coords.some(([lon, lat]: [number, number]) =>
                         lon >= bbox!.minLon && lon <= bbox!.maxLon &&
                         lat >= bbox!.minLat && lat <= bbox!.maxLat
                     );
@@ -97,14 +64,17 @@ export async function GET(req: NextRequest) {
                     geometry: { type: 'LineString', coordinates: coords },
                     properties: {
                         type: 'track',
-                        id: seg.id,
-                        from: seg.from_station_code,
-                        to: seg.to_station_code,
-                        gauge: seg.gauge,
-                        electrified: seg.electrified,
-                        status: seg.status,
-                        track_type: seg.track_type,
-                        zone: seg.zone_code || null
+                        id: sec.id,
+                        from: sec.from_node_code,
+                        to: sec.to_node_code,
+                        distance_km: sec.distance_km,
+                        num_stations: sec.num_stations,
+                        track_type: sec.track_type,
+                        electrified: sec.electrified,
+                        gauge: sec.gauge,
+                        status: 'Operational', // Default for now
+                        zone: sec.zone,
+                        mps: sec.mps
                     }
                 });
             }
@@ -136,7 +106,8 @@ export async function GET(req: NextRequest) {
                     latitude: true,
                     longitude: true,
                     zone_code: true,
-                    is_junction: true
+                    is_junction: true,
+                    is_terminus: true
                 },
                 take: 50000
             });
@@ -153,7 +124,8 @@ export async function GET(req: NextRequest) {
                         code: st.station_code,
                         name: st.station_name,
                         zone: st.zone_code,
-                        is_junction: st.is_junction
+                        is_junction: st.is_junction,
+                        is_terminus: st.is_terminus
                     }
                 });
             }
@@ -179,6 +151,10 @@ export async function GET(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Atlas GeoJSON error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ 
+            error: error.message,
+            stack: error.stack,
+            hint: 'Check if TrackSection table exists and prisma generate was run.'
+        }, { status: 500 });
     }
 }
