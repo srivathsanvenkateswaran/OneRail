@@ -30,7 +30,15 @@ export default function Navbar() {
                     <GlobalSearch />
                 </div>
 
-
+                {/* Navigation */}
+                <nav className={styles.nav}>
+                    <Link 
+                        href="/atlas" 
+                        className={`${styles.link} ${pathname === "/atlas" ? styles.active : ""}`}
+                    >
+                        Atlas
+                    </Link>
+                </nav>
             </div>
         </header>
     );

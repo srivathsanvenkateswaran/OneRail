@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type') || 'all';
     const gaugeFilter = searchParams.get('gauge');
     const statusFilter = searchParams.get('status');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50000'), 100000);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '200000'), 300000);
 
     // Parse optional bbox
     let bbox: { minLon: number; minLat: number; maxLon: number; maxLat: number } | null = null;
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
                     zone_code: true,
                     is_junction: true
                 },
-                take: 10000
+                take: 50000
             });
 
             for (const st of stations) {

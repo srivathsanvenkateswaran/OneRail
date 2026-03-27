@@ -11,13 +11,18 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
+import { Pool } from "pg";
+
 const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient(): PrismaClient {
-    // PrismaPg accepts a pg.PoolConfig object directly
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    // We create a pg Pool explicitly which is more robust for SCRAM-SHA-256
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL
+    });
+    const adapter = new PrismaPg(pool);
     return new PrismaClient({ adapter });
 }
 
