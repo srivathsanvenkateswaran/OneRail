@@ -191,6 +191,7 @@ model TrackSegment {
   gauge             String  @default("BG")
   // Operational, Under Construction, Proposed, etc.
   status            String  @default("Operational")
+  zone_code         String?
   
   // Array of [longitude, latitude] coordinates framing the exact path (GeoJSON LineString)
   path_coordinates  Json?

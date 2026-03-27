@@ -36,39 +36,48 @@ export async function GET(req: NextRequest) {
 
         // ── TRACKS ────────────────────────────────────────────────────────────
         if (type === 'all' || type === 'tracks') {
-            const trackWhere: any = {};
-            if (gaugeFilter) trackWhere.gauge = gaugeFilter;
-            if (statusFilter) trackWhere.status = statusFilter;
+            // Use raw SQL to include zone_code (Prisma client types may lag behind schema changes)
+            const whereClauses: string[] = [];
+            const sqlParams: any[] = [];
+            let paramIdx = 1;
 
-            const trackSegments = await prisma.trackSegment.findMany({
-                where: trackWhere,
-                select: {
-                    id: true,
-                    from_station_code: true,
-                    to_station_code: true,
-                    gauge: true,
-                    electrified: true,
-                    status: true,
-                    track_type: true,
-                    path_coordinates: true,
-                    from_station: { select: { latitude: true, longitude: true, zone_code: true } },
-                    to_station: { select: { latitude: true, longitude: true } }
-                },
-                take: limit
-            });
+            if (gaugeFilter) {
+                whereClauses.push(`t.gauge = $${paramIdx++}`);
+                sqlParams.push(gaugeFilter);
+            }
+            if (statusFilter) {
+                whereClauses.push(`t.status = $${paramIdx++}`);
+                sqlParams.push(statusFilter);
+            }
+            sqlParams.push(limit);
+            const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+            const rawSql = `
+                SELECT t.id, t.from_station_code, t.to_station_code,
+                       t.gauge, t.electrified, t.status, t.track_type, t.zone_code,
+                       t.path_coordinates,
+                       fs.longitude AS from_lon, fs.latitude AS from_lat,
+                       ts.longitude AS to_lon,   ts.latitude AS to_lat
+                FROM "TrackSegment" t
+                LEFT JOIN "Station" fs ON fs.station_code = t.from_station_code
+                LEFT JOIN "Station" ts ON ts.station_code = t.to_station_code
+                ${whereStr}
+                LIMIT $${paramIdx}
+            `;
+
+            const trackSegments: any[] = await prisma.$queryRawUnsafe(rawSql, ...sqlParams);
 
             for (const seg of trackSegments) {
                 let coords: number[][] = [];
 
-                if (seg.path_coordinates && Array.isArray(seg.path_coordinates) && (seg.path_coordinates as any[]).length >= 2) {
-                    coords = seg.path_coordinates as number[][];
-                } else if (
-                    seg.from_station?.longitude && seg.from_station?.latitude &&
-                    seg.to_station?.longitude && seg.to_station?.latitude
-                ) {
+                const rawPath = seg.path_coordinates;
+                const parsedPath = typeof rawPath === 'string' ? JSON.parse(rawPath) : rawPath;
+                if (parsedPath && Array.isArray(parsedPath) && parsedPath.length >= 2) {
+                    coords = parsedPath;
+                } else if (seg.from_lon && seg.from_lat && seg.to_lon && seg.to_lat) {
                     coords = [
-                        [seg.from_station.longitude, seg.from_station.latitude],
-                        [seg.to_station.longitude, seg.to_station.latitude]
+                        [seg.from_lon, seg.from_lat],
+                        [seg.to_lon, seg.to_lat]
                     ];
                 }
 
@@ -95,7 +104,7 @@ export async function GET(req: NextRequest) {
                         electrified: seg.electrified,
                         status: seg.status,
                         track_type: seg.track_type,
-                        zone: seg.from_station?.zone_code || null
+                        zone: seg.zone_code || null
                     }
                 });
             }

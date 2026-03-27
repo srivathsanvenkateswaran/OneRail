@@ -180,7 +180,7 @@ export default function AtlasPage() {
             setLoading(true);
             try {
                 // Check IDB cache first to avoid hammering the DB
-                const cacheKey = 'atlas-geojson-v2';
+                const cacheKey = 'atlas-geojson-v4';
                 let json = await getCachedData(cacheKey);
 
                 if (!json) {
