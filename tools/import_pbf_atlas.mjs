@@ -19,7 +19,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createReadStream } from 'fs';
 import OsmPbfParser from 'osm-pbf-parser';
-import { PrismaClient } from '@prisma/client';
+import PrismaPkg from '../web/node_modules/@prisma/client/index.js';
+const { PrismaClient } = PrismaPkg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prisma = new PrismaClient();
