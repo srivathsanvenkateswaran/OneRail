@@ -37,10 +37,13 @@ export async function GET(req: NextRequest) {
         // ── TRACK SECTIONS (Logical corridors) ────────────────────────────────
         if (type === 'all' || type === 'tracks') {
             const rawSql = `
-                SELECT id, from_node_code, to_node_code, 
-                       distance_km, num_stations, track_type, electrified, gauge,
-                       zone_code as zone, mps, path_coordinates
-                FROM "TrackSection"
+                SELECT ts.id, ts.from_node_code, ts.to_node_code, 
+                       f.station_name as from_name, t.station_name as to_name,
+                       ts.distance_km, ts.num_stations, ts.track_type, ts.electrified, ts.gauge,
+                       ts.zone_code as zone, ts.mps, ts.path_coordinates
+                FROM "TrackSection" ts
+                LEFT JOIN "Station" f ON ts.from_node_code = f.station_code
+                LEFT JOIN "Station" t ON ts.to_node_code = t.station_code
                 LIMIT $1
             `;
             const sections: any[] = await prisma.$queryRawUnsafe(rawSql, limit);
@@ -65,8 +68,8 @@ export async function GET(req: NextRequest) {
                     properties: {
                         type: 'track',
                         id: sec.id,
-                        from: sec.from_node_code,
-                        to: sec.to_node_code,
+                        from: sec.from_name || sec.from_node_code,
+                        to: sec.to_name || sec.to_node_code,
                         distance_km: sec.distance_km,
                         num_stations: sec.num_stations,
                         track_type: sec.track_type,

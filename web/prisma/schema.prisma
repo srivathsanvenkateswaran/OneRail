@@ -216,8 +216,8 @@ model TrackSegment {
   zone_code         String?
   mps               Int?    // Max Permissible Speed
   
-  section_id        Int?
-  section           TrackSection? @relation(fields: [section_id], references: [id])
+  track_section_id    Int?
+  track_section       TrackSection? @relation(fields: [track_section_id], references: [id], onDelete: SetNull)
   
   // Array of [longitude, latitude] coordinates framing the exact path (GeoJSON LineString)
   path_coordinates  Json?
