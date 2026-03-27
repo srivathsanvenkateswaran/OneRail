@@ -319,7 +319,7 @@ export default function AtlasPage() {
         const loadNetwork = async () => {
             setLoading(true);
             try {
-                const cacheKey = 'atlas-geojson-v12';
+                const cacheKey = 'atlas-geojson-v13';
                 let json = await getCachedData(cacheKey);
 
                 if (!json) {
@@ -444,13 +444,25 @@ export default function AtlasPage() {
                             </Source>
                         )}
                         {hoverInfo && hoverInfo.feature.properties.type === 'track' && (
-                            <Popup longitude={hoverInfo.lng} latitude={hoverInfo.lat} closeButton={false} anchor="bottom">
+                            <Popup
+                                longitude={hoverInfo.lng}
+                                latitude={hoverInfo.lat}
+                                closeButton={false}
+                                closeOnClick={false}
+                                maxWidth="280px"
+                            >
                                 <TrackTooltip props={hoverInfo.feature.properties} />
                             </Popup>
                         )}
                         {(selectedFeature || hoverInfo) && (selectedFeature || hoverInfo)!.feature.properties.type === 'station' && (
-                            <Popup longitude={(selectedFeature || hoverInfo)!.lng} latitude={(selectedFeature || hoverInfo)!.lat}
-                                closeButton={!!selectedFeature} onClose={() => setSelectedFeature(null)} anchor="bottom">
+                            <Popup
+                                longitude={(selectedFeature || hoverInfo)!.lng}
+                                latitude={(selectedFeature || hoverInfo)!.lat}
+                                closeButton={!!selectedFeature}
+                                closeOnClick={false}
+                                onClose={() => setSelectedFeature(null)}
+                                maxWidth="240px"
+                            >
                                 <StationTooltip props={(selectedFeature || hoverInfo)!.feature.properties} />
                             </Popup>
                         )}

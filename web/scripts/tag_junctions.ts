@@ -2,10 +2,23 @@ import 'dotenv/config';
 import { prisma } from '../src/lib/prisma';
 
 async function main() {
-    console.log('--- OneRail Global Hub Classifier (Manual & Automatic) ---');
+    console.log('--- OneRail Global Hub Classifier (Simple Name-Based) ---');
     
-    // Step 1: Structural Analysis
+    // Step 1: Global Clear of all existing flags (fresh start)
     await prisma.$executeRaw`
+        UPDATE "Station" SET is_junction = false, is_terminus = false;
+
+        -- Step 2: Mark by Name ONLY (Case-insensitive)
+        -- Looking for " Jn", " Jn.", " Junction", or " Jct" (common Indian Railways hub abbreviations)
+        UPDATE "Station"
+        SET is_junction = true
+        WHERE (station_name ILIKE '% Jn' 
+               OR station_name ILIKE '% Jn.' 
+               OR station_name ILIKE '% Junction%'
+               OR station_name ILIKE '% Jct%');
+
+        -- Step 3: Special Case for logical terminals (only degree-1 in the track graph)
+        -- We only tag them as terminals if they are NOT junctions and are NAMED stations.
         CREATE TEMP TABLE NodeDegrees AS
         SELECT code, COUNT(*) as degree
         FROM (
@@ -15,49 +28,26 @@ async function main() {
         ) sub
         GROUP BY code;
 
-        -- Global Clear
-        UPDATE "Station" SET is_junction = false, is_terminus = false;
-
-        -- Automatic Junctions (Naming & Degree)
-        UPDATE "Station"
-        SET is_junction = true
-        WHERE (station_name ILIKE '% Jn%' OR station_name ILIKE '% Junction%');
-
-        UPDATE "Station" s
-        SET is_junction = true
-        FROM NodeDegrees d
-        WHERE s.station_code = d.code AND d.degree >= 3;
-
-        -- Automatic Terminals
         UPDATE "Station" s
         SET is_terminus = true
         FROM NodeDegrees d
-        WHERE s.station_code = d.code AND d.degree = 1 AND s.is_junction = false;
+        WHERE s.station_code = d.code 
+          AND d.degree = 1 
+          AND s.is_junction = false
+          AND NOT s.station_code LIKE 'OSM_%';
 
-        -- USER OVERRIDES (Explicit Ground Truth)
-        -- We force these stations to be Junctions as per user input
-        UPDATE "Station"
-        SET is_junction = true, is_terminus = false
-        WHERE station_name IN (
-            'Dindigul Jn', 'Madurai Jn', 'Virudhunagar Jn', 'Vanchi Maniyachi Jn', 
-            'Tirunelveli Jn', 'Tiruchchirappalli Jn', 'Nagercoil Jn', 'Karaikal', 
-            'Manamadurai Jn', 'Pollachi Jn', 'Coimbatore Jn', 'Salem Jn', 
-            'Erode Jn', 'Karur Jn', 'Jolarpettai Jn', 'Katpadi Jn', 
-            'Villupuram Jn', 'Vriddhachalam Jn'
-        ) OR (
-            station_name ILIKE '%Madurai%' OR station_name ILIKE '%Dindigul%' OR 
-            station_name ILIKE '%Trichy%' OR station_name ILIKE '%Salem%'
-        );
-
-        -- Specific Revert for Chennai Egmore (per user request)
+        -- Specific Revert for Chennai Egmore (Confirmed not a Junction)
         UPDATE "Station"
         SET is_junction = false
         WHERE station_name ILIKE '%Chennai Egmore%';
     `;
 
     const jc = await prisma.station.count({ where: { is_junction: true, NOT: { station_code: { startsWith: 'OSM_' } } } });
-    console.log(`\n✅ DATABASE SYNCHRONIZED!`);
-    console.log(`   Found ${jc} Junctions in total.`);
+    const tc = await prisma.station.count({ where: { is_terminus: true, NOT: { station_code: { startsWith: 'OSM_' } } } });
+
+    console.log(`\n✅ ATLAS TOPOLOGY RE-SIMPLIFIED (Name-Based Only)`);
+    console.log(`   Named Junctions identified: ${jc}`);
+    console.log(`   Named Terminals identified: ${tc}`);
     await prisma.$disconnect();
 }
 
