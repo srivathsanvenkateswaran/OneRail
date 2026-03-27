@@ -350,3 +350,19 @@
 .tooltipHintWrapper:hover .tooltipHint {
     color: #fff;
 }
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}

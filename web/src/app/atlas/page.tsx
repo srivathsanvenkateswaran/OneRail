@@ -16,23 +16,23 @@ const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.j
 
 // ── Zone names + colors for lookup ──────────────────────────────────────────
 export const ZONE_METADATA: Record<string, { color: string; name: string }> = {
-    SR:   { color: '#3b82f6', name: 'Southern Railway' },
-    SWR:  { color: '#06b6d4', name: 'South Western Railway' },
-    SCR:  { color: '#8b5cf6', name: 'South Central Railway' },
-    CR:   { color: '#d946ef', name: 'Central Railway' },
-    WR:   { color: '#f43f5e', name: 'Western Railway' },
-    NR:   { color: '#f59e0b', name: 'Northern Railway' },
-    NCR:  { color: '#eab308', name: 'North Central Railway' },
-    NER:  { color: '#84cc16', name: 'North Eastern Railway' },
-    ER:   { color: '#10b981', name: 'Eastern Railway' },
+    SR: { color: '#3b82f6', name: 'Southern Railway' },
+    SWR: { color: '#06b6d4', name: 'South Western Railway' },
+    SCR: { color: '#8b5cf6', name: 'South Central Railway' },
+    CR: { color: '#d946ef', name: 'Central Railway' },
+    WR: { color: '#f43f5e', name: 'Western Railway' },
+    NR: { color: '#f59e0b', name: 'Northern Railway' },
+    NCR: { color: '#eab308', name: 'North Central Railway' },
+    NER: { color: '#84cc16', name: 'North Eastern Railway' },
+    ER: { color: '#10b981', name: 'Eastern Railway' },
     ECoR: { color: '#14b8a6', name: 'East Coast Railway' },
     SECR: { color: '#6366f1', name: 'South East Central Railway' },
-    SER:  { color: '#ec4899', name: 'South Eastern Railway' },
-    NFR:  { color: '#22c55e', name: 'Northeast Frontier Railway' },
-    NWR:  { color: '#f97316', name: 'North Western Railway' },
-    WCR:  { color: '#0ea5e9', name: 'West Central Railway' },
-    ECR:  { color: '#a855f7', name: 'East Central Railway' },
-    KR:   { color: '#fb7185', name: 'Konkan Railway' },
+    SER: { color: '#ec4899', name: 'South Eastern Railway' },
+    NFR: { color: '#22c55e', name: 'Northeast Frontier Railway' },
+    NWR: { color: '#f97316', name: 'North Western Railway' },
+    WCR: { color: '#0ea5e9', name: 'West Central Railway' },
+    ECR: { color: '#a855f7', name: 'East Central Railway' },
+    KR: { color: '#fb7185', name: 'Konkan Railway' },
 };
 
 // Build MapLibre 'match' expression from the palette if still needed for anything
@@ -45,9 +45,9 @@ const trackTypeColor: any = [
     'case',
     ['==', ['get', 'status'], 'Under Construction'], '#f59e0b',
     ['match', ['get', 'track_type'],
-        'Single',    '#3b82f6',   // IR Blue
-        'Double',    '#2563eb',   // Deeper Blue
-        'Triple',    '#fbbf24',   // Amber/Gold
+        'Single', '#3b82f6',   // IR Blue
+        'Double', '#2563eb',   // Deeper Blue
+        'Triple', '#fbbf24',   // Amber/Gold
         'Quadruple', '#f97316',   // Orange
         '#3b82f6'                 // Fallback to IR Blue
     ]
@@ -55,12 +55,12 @@ const trackTypeColor: any = [
 
 const trackTypeWidth: any = [
     'interpolate', ['linear'], ['zoom'],
-    4,  ['match', ['get', 'track_type'],
-            'Single', 0.7, 'Double', 1.3, 'Triple', 1.8, 'Quadruple', 2.2, 0.7],
-    8,  ['match', ['get', 'track_type'],
-            'Single', 1.5, 'Double', 2.5, 'Triple', 3.5, 'Quadruple', 4.5, 1.5],
+    4, ['match', ['get', 'track_type'],
+        'Single', 0.7, 'Double', 1.3, 'Triple', 1.8, 'Quadruple', 2.2, 0.7],
+    8, ['match', ['get', 'track_type'],
+        'Single', 1.5, 'Double', 2.5, 'Triple', 3.5, 'Quadruple', 4.5, 1.5],
     13, ['match', ['get', 'track_type'],
-            'Single', 2.5, 'Double', 4.5, 'Triple', 6.5, 'Quadruple', 8.5, 2.5]
+        'Single', 2.5, 'Double', 4.5, 'Triple', 6.5, 'Quadruple', 8.5, 2.5]
 ];
 
 const lineLayerBG: LayerProps = {
@@ -131,18 +131,18 @@ const stationLayer: LayerProps = {
     paint: {
         'circle-radius': [
             'interpolate', ['linear'], ['zoom'],
-            6, ['case', 
-                ['==', ['get', 'is_junction'], true], 3.5, 
+            6, ['case',
+                ['==', ['get', 'is_junction'], true], 3.5,
                 ['==', ['get', 'is_terminus'], true], 3.5,
                 1.5
             ],
-            9, ['case', 
-                ['==', ['get', 'is_junction'], true], 6, 
+            9, ['case',
+                ['==', ['get', 'is_junction'], true], 6,
                 ['==', ['get', 'is_terminus'], true], 6,
                 2.5
             ],
-            13, ['case', 
-                ['==', ['get', 'is_junction'], true], 10, 
+            13, ['case',
+                ['==', ['get', 'is_junction'], true], 10,
                 ['==', ['get', 'is_terminus'], true], 10,
                 4
             ]
@@ -173,9 +173,9 @@ const stationLabelLayer: LayerProps = {
     id: 'station-labels',
     type: 'symbol',
     source: 'atlas',
-    filter: ['all', 
+    filter: ['all',
         ['==', 'type', 'station'],
-        ['any', 
+        ['any',
             ['>', ['zoom'], 10],
             ['==', ['get', 'is_junction'], true],
             ['==', ['get', 'is_terminus'], true]
@@ -312,7 +312,7 @@ export default function AtlasPage() {
     useEffect(() => {
         const saved = localStorage.getItem('atlasViewState');
         if (saved) {
-            try { setViewState(JSON.parse(saved)); } catch (e) {}
+            try { setViewState(JSON.parse(saved)); } catch (e) { }
         }
         setMapLoaded(true);
 
@@ -403,12 +403,28 @@ export default function AtlasPage() {
                             <div className={styles.sectionTitle}>Track Gauge</div>
                             <LayerToggle color="#3b82f6" label="Broad Gauge (BG)" active={layers.BG} onToggle={() => toggleLayer('BG')} />
                             <LayerToggle color="#10b981" label="Metre Gauge (MG)" active={layers.MG} onToggle={() => toggleLayer('MG')} />
-                            <LayerToggle color="#a78bfa" label="Narrow Gauge (NG)" active={layers.NG} onToggle={() => toggleLayer('NG')} />
+                            <LayerToggle color="#f472b6" label="Narrow Gauge (NG)" active={layers.NG} onToggle={() => toggleLayer('NG')} />
                         </div>
+                        <div className={styles.section}>
+                            <div className={styles.sectionTitle}>Network Hubs</div>
+                            <div className={styles.legendItem}>
+                                <div className={styles.legendDot} style={{ backgroundColor: '#f59e0b', border: '1px solid #f59e0b' }} />
+                                <span>Junctions</span>
+                            </div>
+                            <div className={styles.legendItem}>
+                                <div className={styles.legendDot} style={{ backgroundColor: '#ef4444', border: '1px solid #ef4444' }} />
+                                <span>Terminals</span>
+                            </div>
+                            <div className={styles.legendItem}>
+                                <div className={styles.legendDot} style={{ backgroundColor: '#ffffff', border: '1px solid #94a3b8' }} />
+                                <span>Stations / Halts</span>
+                            </div>
+                        </div>
+
                         <div className={styles.section}>
                             <div className={styles.sectionTitle}>Overlays</div>
                             <LayerToggle color="#e2e8f0" label="Stations" active={layers.stations} onToggle={() => toggleLayer('stations')} isCircle />
-                            <LayerToggle color="#f59e0b" label="Construction" active={layers.construction} onToggle={() => toggleLayer('construction')} isDashed />
+                            <LayerToggle color="#f59e0b" label="Under Construction" active={layers.construction} onToggle={() => toggleLayer('construction')} isDashed />
                         </div>
                     </>
                 )}
