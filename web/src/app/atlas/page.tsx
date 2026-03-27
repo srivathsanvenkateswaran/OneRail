@@ -161,6 +161,8 @@ export default function AtlasPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<{ tracks: number; stations: number } | null>(null);
+    const [mapLoaded, setMapLoaded] = useState(false);
+    const [viewState, setViewState] = useState({ longitude: 78.9629, latitude: 22.5937, zoom: 4.5 });
     const [layers, setLayers] = useState<LayerVisibility>({
         BG: true, MG: true, NG: true, stations: true, construction: true
     });
@@ -168,6 +170,12 @@ export default function AtlasPage() {
     const mapRef = useRef<MapRef>(null);
 
     useEffect(() => {
+        const saved = localStorage.getItem('atlasViewState');
+        if (saved) {
+            try { setViewState(JSON.parse(saved)); } catch (e) {}
+        }
+        setMapLoaded(true);
+
         const loadNetwork = async () => {
             setLoading(true);
             try {
@@ -359,18 +367,27 @@ export default function AtlasPage() {
 
             {/* ── Map ── */}
             <div className={styles.mapWrapper}>
-                <Map
-                    ref={mapRef}
-                    initialViewState={{ longitude: 78.9629, latitude: 22.5937, zoom: 4.5 }}
-                    mapStyle={MAP_STYLE}
-                    interactiveLayerIds={[...(layers.BG ? ['tracks-bg'] : []), 'stations']}
-                    onMouseMove={onHover}
-                    onMouseLeave={() => setHoverInfo(null)}
-                    onClick={onClick}
-                    cursor={hoverInfo ? 'pointer' : 'grab'}
-                >
-                    <NavigationControl position="bottom-right" />
-                    <ScaleControl position="bottom-left" unit="metric" />
+                {mapLoaded && (
+                    <Map
+                        ref={mapRef}
+                        initialViewState={viewState}
+                        onMoveEnd={(e) => {
+                            const state = {
+                                longitude: e.viewState.longitude,
+                                latitude: e.viewState.latitude,
+                                zoom: e.viewState.zoom
+                            };
+                            localStorage.setItem('atlasViewState', JSON.stringify(state));
+                        }}
+                        mapStyle={MAP_STYLE}
+                        interactiveLayerIds={[...(layers.BG ? ['tracks-bg'] : []), 'stations']}
+                        onMouseMove={onHover}
+                        onMouseLeave={() => setHoverInfo(null)}
+                        onClick={onClick}
+                        cursor={hoverInfo ? 'pointer' : 'grab'}
+                    >
+                        <NavigationControl position="bottom-right" />
+                        <ScaleControl position="bottom-left" unit="metric" />
 
                     {data && (
                         <Source id="atlas" type="geojson" data={data}>
@@ -409,6 +426,7 @@ export default function AtlasPage() {
                         </Popup>
                     )}
                 </Map>
+                )}
             </div>
         </div>
     );
@@ -488,7 +506,7 @@ function StationTooltip({ props }: { props: any }) {
             {props.is_junction && (
                 <div className={styles.tooltipBadge}>📍 Junction</div>
             )}
-            <Link href={`/station/${props.code}`} className={styles.tooltipHintWrapper}>
+            <Link href={`/station/${props.code}`} target="_blank" className={styles.tooltipHintWrapper}>
                 <div className={styles.tooltipHint}>Click to view full details ↗</div>
             </Link>
         </div>

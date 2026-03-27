@@ -71,7 +71,6 @@ export default async function StationPage({ params }: Props) {
                   src={`https://basemaps.cartocdn.com/gl/dark-matter-gl-style/static/${station.longitude},${station.latitude},12,0/400x200@2x?access_token=none`} 
                   alt="Map Location" 
                   className={styles.minimapImg} 
-                  onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
                 <div className={styles.minimapPin} />
               </div>
