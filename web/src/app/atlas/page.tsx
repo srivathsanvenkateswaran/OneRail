@@ -14,7 +14,85 @@ import Link from 'next/link';
 
 const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-// ── Layer definitions ────────────────────────────────────────────────────────
+// ── Zone fill colors (used in both fill layer + legend) ──────────────────────
+export const ZONE_COLORS: Record<string, string> = {
+    SR:   '#3b82f6',  // Blue         – Southern
+    SWR:  '#06b6d4',  // Cyan         – South Western
+    SCR:  '#8b5cf6',  // Purple       – South Central
+    CR:   '#d946ef',  // Fuchsia      – Central
+    WR:   '#f43f5e',  // Rose         – Western
+    NR:   '#f59e0b',  // Amber        – Northern
+    NCR:  '#eab308',  // Yellow       – North Central
+    NER:  '#84cc16',  // Lime         – North Eastern
+    ER:   '#10b981',  // Emerald      – Eastern
+    ECoR: '#14b8a6',  // Teal         – East Coast
+    SECR: '#6366f1',  // Indigo       – South East Central
+    SER:  '#ec4899',  // Pink         – South Eastern
+    NFR:  '#22c55e',  // Green        – Northeast Frontier
+    NWR:  '#f97316',  // Orange       – North Western
+    WCR:  '#0ea5e9',  // Sky          – West Central
+    ECR:  '#a855f7',  // Violet       – East Central
+    KR:   '#fb7185',  // Red-pink     – Konkan
+    CLW:  '#94a3b8',  // Slate        – production unit
+};
+
+// Build MapLibre 'match' expression from the palette
+const zoneMatchExpr = (): any[] => {
+    const expr: any[] = ['match', ['get', 'zone']];
+    for (const [code, color] of Object.entries(ZONE_COLORS)) {
+        expr.push(code, color);
+    }
+    expr.push('#94a3b8'); // fallback
+    return expr;
+};
+
+// ── Zone area fill layer (rendered from a separate /api/atlas/zones source) ──
+const zoneFillLayer: LayerProps = {
+    id: 'zone-fill',
+    type: 'fill',
+    source: 'zones',
+    paint: {
+        'fill-color': zoneMatchExpr(),
+        'fill-opacity': 0.07,
+    }
+};
+
+const zoneBorderLayer: LayerProps = {
+    id: 'zone-border',
+    type: 'line',
+    source: 'zones',
+    paint: {
+        'line-color': zoneMatchExpr(),
+        'line-width': 1,
+        'line-opacity': 0.25,
+        'line-dasharray': ['literal', [4, 4]]
+    }
+};
+
+// ── Track line layers — colored by track_type, NOT zone ──────────────────────
+
+// BG Tracks: Single=white-grey, Double=blue, Triple/Multi=gold
+const trackTypeColor: any = [
+    'case',
+    ['==', ['get', 'status'], 'Under Construction'], '#f59e0b',
+    ['match', ['get', 'track_type'],
+        'Single',    '#cbd5e1',   // Slate-300
+        'Double',    '#60a5fa',   // Blue-400
+        'Triple',    '#fbbf24',   // Amber-400
+        'Quadruple', '#f97316',   // Orange-500
+        '#94a3b8'                 // Fallback slate
+    ]
+];
+
+const trackTypeWidth: any = [
+    'interpolate', ['linear'], ['zoom'],
+    4,  ['match', ['get', 'track_type'],
+            'Single', 0.7, 'Double', 1.3, 'Triple', 1.8, 'Quadruple', 2.2, 0.7],
+    8,  ['match', ['get', 'track_type'],
+            'Single', 1.5, 'Double', 2.5, 'Triple', 3.5, 'Quadruple', 4.5, 1.5],
+    13, ['match', ['get', 'track_type'],
+            'Single', 2.5, 'Double', 4.5, 'Triple', 6.5, 'Quadruple', 8.5, 2.5]
+];
 
 const lineLayerBG: LayerProps = {
     id: 'tracks-bg',
@@ -23,47 +101,14 @@ const lineLayerBG: LayerProps = {
     filter: ['all', ['==', 'type', 'track'], ['==', 'gauge', 'BG']],
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-        'line-color': [
-            'case',
-            ['==', ['get', 'status'], 'Under Construction'], '#f59e0b',
-            // Default coloring fallback to Zone mapping, or fallback to Electrified distinction
-            ['match',
-                ['get', 'zone'],
-                'SR', '#3b82f6',    // Blue
-                'SWR', '#06b6d4',   // Cyan
-                'SCR', '#8b5cf6',   // Purple
-                'CR', '#d946ef',    // Fuchsia
-                'WR', '#f43f5e',    // Rose
-                'NR', '#f59e0b',    // Amber
-                'NCR', '#eab308',   // Yellow
-                'NER', '#84cc16',   // Lime
-                'ER', '#10b981',    // Emerald
-                'ECoR', '#14b8a6',  // Teal
-                'SECR', '#6366f1',  // Indigo
-                'SER', '#ec4899',   // Pink
-                'NFR', '#22c55e',   // Green
-                'NWR', '#f97316',   // Orange
-                'WCR', '#0ea5e9',   // Light Blue
-                'ECR', '#a855f7',   // Purple alt
-                ['case', ['==', ['get', 'electrified'], true], '#60a5fa', '#f87171'] // Fallback: Blue if Electrified, Red if Not
-            ]
-        ],
-        'line-width': [
-            'interpolate', ['linear'], ['zoom'],
-            4, ['case', ['==', ['get', 'track_type'], 'Double'], 1.4, 0.8],
-            8, ['case', ['==', ['get', 'track_type'], 'Double'], 2.8, 1.8],
-            12, ['case', ['==', ['get', 'track_type'], 'Double'], 5.0, 3.5]
-        ],
-        'line-opacity': [
-            'case',
-            ['==', ['get', 'status'], 'Under Construction'], 0.6,
-            0.9
-        ],
+        'line-color': trackTypeColor,
+        'line-width': trackTypeWidth,
+        'line-opacity': ['case', ['==', ['get', 'status'], 'Under Construction'], 0.6, 0.9],
+        // Dashed = non-electrified; solid = electrified
         'line-dasharray': [
             'case',
-            ['==', ['get', 'status'], 'Under Construction'],
-            ['literal', [4, 3]],
-            ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]] // Dashed line if non-electrified
+            ['==', ['get', 'status'], 'Under Construction'], ['literal', [4, 3]],
+            ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [5, 3]]]
         ]
     }
 };
@@ -75,7 +120,7 @@ const lineLayerMG: LayerProps = {
     filter: ['all', ['==', 'type', 'track'], ['==', 'gauge', 'MG']],
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-        'line-color': '#10b981', // MG = Emerald
+        'line-color': '#10b981',  // Emerald — always distinct from BG
         'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 8, 1.4, 12, 2.5],
         'line-opacity': 0.8,
         'line-dasharray': ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]]
@@ -89,7 +134,7 @@ const lineLayerNG: LayerProps = {
     filter: ['all', ['==', 'type', 'track'], ['==', 'gauge', 'NG']],
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-        'line-color': '#a78bfa', // NG = Violet
+        'line-color': '#a78bfa',  // Violet — always distinct
         'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 8, 1.2, 12, 2],
         'line-opacity': 0.75,
         'line-dasharray': ['case', ['==', ['get', 'electrified'], true], ['literal', [1, 0]], ['literal', [3, 2]]]
@@ -156,6 +201,7 @@ interface LayerVisibility {
 
 export default function AtlasPage() {
     const [data, setData] = useState<any>(null);
+    const [zoneData, setZoneData] = useState<any>(null);
     const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
     const [selectedFeature, setSelectedFeature] = useState<HoverInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -211,6 +257,14 @@ export default function AtlasPage() {
         };
 
         loadNetwork();
+    }, []);
+
+    // Load zone polygons (fast, <18 features)
+    useEffect(() => {
+        fetch('/api/atlas/zones')
+            .then(r => r.json())
+            .then(setZoneData)
+            .catch(console.error);
     }, []);
 
     const onHover = useCallback((event: any) => {
@@ -389,6 +443,15 @@ export default function AtlasPage() {
                         <NavigationControl position="bottom-right" />
                         <ScaleControl position="bottom-left" unit="metric" />
 
+                    {/* Zone fill polygons — rendered BEHIND tracks */}
+                    {zoneData && (
+                        <Source id="zones" type="geojson" data={zoneData}>
+                            <Layer {...(zoneFillLayer as any)} />
+                            <Layer {...(zoneBorderLayer as any)} />
+                        </Source>
+                    )}
+
+                    {/* Track + station features on top */}
                     {data && (
                         <Source id="atlas" type="geojson" data={data}>
                             {layers.BG && <Layer {...(lineLayerBG as any)} filter={bgFilter} />}
