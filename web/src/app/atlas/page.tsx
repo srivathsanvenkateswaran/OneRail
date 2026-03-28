@@ -285,6 +285,7 @@ export function StationTooltip({ props }: { props: any }) {
                 </div>
             )}
             {props.is_junction && <div className={styles.tooltipBadge}>📍 Junction</div>}
+            {props.is_terminus && <div className={styles.tooltipBadge}>🏁 Terminus</div>}
             <Link href={`/station/${props.code}`} target="_blank" className={styles.tooltipHintWrapper}>
                 <div className={styles.tooltipHint}>Click to view full details ↗</div>
             </Link>
@@ -319,7 +320,7 @@ export default function AtlasPage() {
         const loadNetwork = async () => {
             setLoading(true);
             try {
-                const cacheKey = 'atlas-geojson-v18';
+                const cacheKey = 'atlas-geojson-v22';
                 let json = await getCachedData(cacheKey);
 
                 if (!json) {

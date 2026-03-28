@@ -112,21 +112,43 @@ async function main() {
     }
     console.log(`   Adjacency list built: ${adj.size} nodes in ${elapsed(Date.now() - adjStart)}.\n`);
 
+    // ── Step 2.5: Load junction station codes ────────────────────────────
+    // Only junctions are loaded here. Terminus stations are computed AFTER
+    // sections are persisted (Step 6) by finding real stations with degree=1
+    // in the section graph — no track on one side.
+    console.log(`   [${ts()}] Loading junction station codes...`);
+    const hubStations = await prisma.station.findMany({
+        where: { is_junction: true },
+        select: { station_code: true }
+    });
+    const hubCodes = new Set(hubStations.map(s => s.station_code));
+    console.log(`   Junction codes loaded: ${hubCodes.size} stations.\n`);
+
     // ── Step 3: Identify key nodes ────────────────────────────────────────
-    console.log('Step 3: Identifying network nodes (junctions & real stations)...');
+    console.log('Step 3: Identifying section anchor nodes...');
     const step3Start = Date.now();
 
-    // Real stations (non-OSM_ codes) are ALWAYS section anchors regardless of degree,
-    // because they appear mid-chain with degree 2 in the OSM geometry graph.
-    // OSM nodes are only anchors when they are topological junctions (degree != 2).
+    // A node is an anchor if:
+    //   1. It is a tagged junction (hubCodes) — always anchored regardless of degree,
+    //      so Dindigul Jn splits sections even if it sits mid-chain with degree=2.
+    //   2. Any other node (OSM or real) with degree ≠ 2 — i.e. NOT a simple pass-through.
+    //      This catches:
+    //        - Real stations with degree=1 (topological dead ends: Vasco Da Gama,
+    //          Kanniyakumari, Vishakhapatnam) → become section endpoints → tagged
+    //          as terminus in Step 6.
+    //        - Real stations with degree≥3 (de-facto branch points not named as junctions).
+    //        - OSM topology nodes (degree=1 dead ends, degree≥3 branch nodes).
+    // Only degree-2 non-junction nodes (simple pass-throughs) are walked over.
     const keyNodeList = Array.from(adj.keys()).filter(code =>
-        !code.startsWith('OSM_') || adj.get(code)!.length !== 2
+        hubCodes.has(code) || adj.get(code)!.length !== 2
     );
     const keyNodes = new Set(keyNodeList);
 
-    const realStationAnchors = keyNodeList.filter(c => !c.startsWith('OSM_')).length;
-    const osmTerminalAnchors = keyNodeList.filter(c => c.startsWith('OSM_') && adj.get(c)!.length === 1).length;
-    const osmJunctionAnchors = keyNodeList.filter(c => c.startsWith('OSM_') && adj.get(c)!.length > 2).length;
+    const hubAnchors            = keyNodeList.filter(c => !c.startsWith('OSM_') && hubCodes.has(c)).length;
+    const realDeadEndAnchors    = keyNodeList.filter(c => !c.startsWith('OSM_') && !hubCodes.has(c) && adj.get(c)!.length === 1).length;
+    const realBranchAnchors     = keyNodeList.filter(c => !c.startsWith('OSM_') && !hubCodes.has(c) && adj.get(c)!.length >= 3).length;
+    const osmTerminalAnchors    = keyNodeList.filter(c => c.startsWith('OSM_') && adj.get(c)!.length === 1).length;
+    const osmJunctionAnchors    = keyNodeList.filter(c => c.startsWith('OSM_') && adj.get(c)!.length > 2).length;
 
     // Degree distribution of all nodes for sanity check
     const degreeMap: Record<number, number> = {};
@@ -138,9 +160,11 @@ async function main() {
         .map(([d, n]) => `deg-${d}: ${n}`).join(', ');
 
     console.log(`   Key nodes: ${keyNodeList.length} total`);
-    console.log(`     - Real station anchors : ${realStationAnchors}`);
-    console.log(`     - OSM terminal anchors : ${osmTerminalAnchors} (dead ends)`);
-    console.log(`     - OSM junction anchors : ${osmJunctionAnchors} (degree > 2)`);
+    console.log(`     - Named junction anchors             : ${hubAnchors}`);
+    console.log(`     - Real dead-end anchors (degree=1)   : ${realDeadEndAnchors}  ← future terminus candidates`);
+    console.log(`     - Real branch anchors   (degree≥3)   : ${realBranchAnchors}`);
+    console.log(`     - OSM dead-end anchors  (degree=1)   : ${osmTerminalAnchors}`);
+    console.log(`     - OSM junction anchors  (degree≥3)   : ${osmJunctionAnchors}`);
     console.log(`   Node degree distribution : ${degreeSummary}`);
     console.log(`   Step 3 complete in ${elapsed(Date.now() - step3Start)}.\n`);
 
@@ -340,14 +364,13 @@ async function main() {
                 }))
             );
             saved += chunk.length;
-            renderProgressBar(saved, sections.length, 'Saving');
-
-            // Periodic timing log every 10 chunks
-            if ((i / CHUNK_SIZE) % 10 === 9) {
-                const rate = saved / ((Date.now() - step5Start) / 1000);
-                const remaining = ((sections.length - saved) / rate).toFixed(0);
-                process.stdout.write(`\n   [${ts()}] ${saved}/${sections.length} saved @ ${rate.toFixed(0)}/s — ~${remaining}s remaining\n`);
-            }
+            const elapsedSec = (Date.now() - step5Start) / 1000;
+            const rate = saved / elapsedSec;
+            const eta = rate > 0 ? `~${((sections.length - saved) / rate).toFixed(0)}s` : '...';
+            const width = 28;
+            const pct = saved / sections.length;
+            const bar = '█'.repeat(Math.round(width * pct)) + '░'.repeat(width - Math.round(width * pct));
+            process.stdout.write(`   Saving: [${bar}] ${(pct * 100).toFixed(1)}% (${saved}/${sections.length}) @ ${rate.toFixed(0)}/s  ETA ${eta}  \r`);
         }
 
         process.stdout.write('\n');
@@ -358,6 +381,57 @@ async function main() {
         console.error(err.message || err);
         process.exit(1);
     }
+
+    // ── Step 6: Tag terminus stations from section graph ─────────────────
+    // Two signals are required to avoid false positives from OSM data gaps:
+    //
+    //   1. TOPOLOGICAL — degree=1 in the section graph: the station only has
+    //      track on one side (no section exits from the other direction).
+    //
+    //   2. OPERATIONAL — the station appears as source or destination in at
+    //      least one Train record, confirming a real scheduled service ends there.
+    //
+    // Stations that are degree=1 only because OSM coverage stops nearby will
+    // have no trains starting/ending there, so they are correctly excluded.
+    // e.g. CAPE, TVC, CSMT, Mumbai Central, Puducherry, Tiruchendur, Tuticorin.
+    console.log('Step 6: Tagging terminus stations from section graph...');
+    const step6Start = Date.now();
+
+    await prisma.$executeRawUnsafe('UPDATE "Station" SET is_terminus = false');
+
+    await prisma.$executeRawUnsafe(`
+        WITH SectionDegree AS (
+            SELECT code, COUNT(*) AS degree
+            FROM (
+                SELECT from_node_code AS code FROM "TrackSection"
+                UNION ALL
+                SELECT to_node_code   AS code FROM "TrackSection"
+            ) endpoints
+            GROUP BY code
+        ),
+        TrainEndpoints AS (
+            SELECT source_station_code AS code, COUNT(*) AS train_count
+            FROM "Train" GROUP BY source_station_code
+            UNION ALL
+            SELECT destination_station_code AS code, COUNT(*) AS train_count
+            FROM "Train" GROUP BY destination_station_code
+        ),
+        TrainCounts AS (
+            SELECT code, SUM(train_count) AS total FROM TrainEndpoints GROUP BY code
+        )
+        UPDATE "Station" s
+        SET is_terminus = true
+        FROM SectionDegree sd
+        JOIN TrainCounts tc ON tc.code = sd.code
+        WHERE s.station_code = sd.code
+          AND sd.degree = 1
+          AND tc.total >= 5
+          AND s.is_junction = false
+          AND s.station_code NOT LIKE 'OSM_%'
+    `);
+
+    const termCount = await prisma.station.count({ where: { is_terminus: true } });
+    console.log(`   Tagged ${termCount} terminus stations in ${elapsed(Date.now() - step6Start)}.\n`);
 
     const totalTime = Date.now() - startTime;
     console.log('\n========================================');
