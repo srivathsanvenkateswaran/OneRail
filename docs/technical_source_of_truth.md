@@ -69,3 +69,19 @@ graph TD
 * **Viewport Overload:** The GEOJSON API enforces a hard ceiling (`limit=50000`) and leverages database-level bounding box filtering to prevent returning the entire India dataset to the client, which would crash the map renderer.
 * **Time Sequence Violations:** The transformer script intelligently tags **`sequenceError`** if distance (km) goes backward or time math logic fails, flagging the document in validation rather than silently corrupting the dataset.
 * **Upsert Conflict Resolution:** The database seeding uses `Prisma.upsert` based on unique node codes (**`OSM_...`**), allowing the importer script to be completely idempotent. You can safely restart a failed ingestion mid-way.
+
+## Lessons Learned & FAQ
+
+### Q: Why are some major junctions (e.g., Tenali, Katpadi) missing from the map?
+**A:** The Atlas map only renders stations that have both `latitude` and `longitude` populated in the database. Even if a station is marked as `is_junction = true`, it will remain invisible on the map if its coordinates are `NULL`. This often happens if the initial OSM import didn't find a matching `ref` (Station Code) in the PBF file.
+
+### Q: How do I fix missing coordinates for junctions?
+**A:** Use the recovery scripts in the `web/scripts/` directory:
+1.  **`bulk_recover_geography.js`**: Fetches all Indian stations from the Overpass API and attempts to match them to your database by Station Code or Normalized Name.
+2.  **`patch_junction_coords.js`** / **`final_junction_patch.js`**: Use these for surgical manual patches if OSM data is inconsistent or missing for specific high-priority hubs.
+
+### Q: I updated the database coordinates, but the map still doesn't show the junctions. Why?
+**A:** The frontend (`AtlasPage.tsx`) uses a persistent client-side cache (`IDB` via `clientCache.ts`). To force all users to see the new data, you must **bump the `cacheKey` version** in `web/src/app/atlas/page.tsx` (e.g., change `atlas-geojson-v15` to `atlas-geojson-v16`).
+
+### Q: How is a "Junction" determined?
+**A:** Primarily by name in `web/scripts/tag_junctions.ts`. It looks for suffixes like " Jn", " Jct", or " Junction". If a station is a major hub but doesn't have these in its name, it must be manually flagged or the script's regex must be updated.
