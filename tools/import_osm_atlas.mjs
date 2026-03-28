@@ -24,6 +24,10 @@ async function importOSM(filename) {
             const path = el.nodes.map(nodeId => nodesMap.get(nodeId)).filter(coord => !!coord);
             if (path.length < 2) continue;
 
+            // 1435mm = standard gauge used by metro systems (Chennai Metro, Delhi Metro, etc.)
+            // Indian Railways mainline uses 1676mm (BG), 1000mm (MG), 762/610mm (NG) — never 1435mm.
+            if (el.tags?.gauge === '1435') continue;
+
             const gauge = el.tags?.gauge === '1676' ? 'BG' :
                 el.tags?.gauge === '1000' ? 'MG' :
                     el.tags?.gauge === '762' || el.tags?.gauge === '610' ? 'NG' : 'BG';

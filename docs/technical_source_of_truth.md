@@ -69,6 +69,7 @@ graph TD
 * **Viewport Overload:** The GEOJSON API enforces a hard ceiling (`limit=50000`) and leverages database-level bounding box filtering to prevent returning the entire India dataset to the client, which would crash the map renderer.
 * **Time Sequence Violations:** The transformer script intelligently tags **`sequenceError`** if distance (km) goes backward or time math logic fails, flagging the document in validation rather than silently corrupting the dataset.
 * **Upsert Conflict Resolution:** The database seeding uses `Prisma.upsert` based on unique node codes (**`OSM_...`**), allowing the importer script to be completely idempotent. You can safely restart a failed ingestion mid-way.
+* **Metro/Rapid Transit Contamination:** OSM contains metro and rapid transit lines (Chennai Metro, Delhi Metro, Hyderabad Metro, etc.) tagged as `railway=rail`. These are filtered out at import time by checking `gauge=1435` — standard gauge (1435mm) is used exclusively by metro systems in India and never by Indian Railways mainline. All three importers (`import_pbf_atlas.ts`, `web/scripts/import_osm_atlas.ts`, `tools/import_osm_atlas.mjs`) skip any way with this gauge tag.
 
 ## Lessons Learned & FAQ
 
@@ -85,3 +86,12 @@ graph TD
 
 ### Q: How is a "Junction" determined?
 **A:** Primarily by name in `web/scripts/tag_junctions.ts`. It looks for suffixes like " Jn", " Jct", or " Junction". If a station is a major hub but doesn't have these in its name, it must be manually flagged or the script's regex must be updated.
+
+### Q: Why are metro lines (Chennai Metro, Delhi Metro, etc.) not showing on the Atlas?
+**A:** By design. The Atlas shows only Indian Railways infrastructure. Metro/rapid transit systems use 1435mm standard gauge in India, which none of the Indian Railways mainline gauges (BG=1676mm, MG=1000mm, NG=762/610mm) match. All importers skip OSM ways tagged with `gauge=1435`. If a metro line appears despite this filter, it means the OSM contributor did not tag the gauge — in which case it gets incorrectly defaulted to BG. Report it as a data quality issue so the specific segments can be removed.
+
+### Q: The Atlas is showing an "Under Construction" track that looks like a metro line. What do I do?
+**A:** This is the gauge tagging gap — the OSM way has `railway=rail` + a construction tag but no `gauge` tag, so the importer can't detect it as metro. To fix:
+1. Look up the OSM node IDs (from `from_station_code`/`to_station_code` in the DB, strip the `OSM_` prefix) at `openstreetmap.org/node/<id>` to confirm the way it belongs to.
+2. If confirmed as metro, delete the affected `TrackSegment` rows directly from the DB.
+3. Optionally report/correct the tagging on OSM so future imports are clean.

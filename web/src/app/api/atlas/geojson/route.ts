@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
         // ── TRACK SECTIONS (Logical corridors) ────────────────────────────────
         if (type === 'all' || type === 'tracks') {
             const rawSql = `
-                SELECT ts.id, ts.from_node_code, ts.to_node_code, 
+                SELECT ts.id, ts.from_node_code, ts.to_node_code,
                        f.station_name as from_name, t.station_name as to_name,
                        ts.distance_km, ts.num_stations, ts.track_type, ts.electrified, ts.gauge,
-                       ts.zone_code as zone, ts.mps, ts.path_coordinates
+                       ts.status, ts.zone_code as zone, ts.mps, ts.path_coordinates
                 FROM "TrackSection" ts
                 LEFT JOIN "Station" f ON ts.from_node_code = f.station_code
                 LEFT JOIN "Station" t ON ts.to_node_code = t.station_code
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
                         track_type: sec.track_type,
                         electrified: sec.electrified,
                         gauge: sec.gauge,
-                        status: 'Operational', // Default for now
+                        status: sec.status || 'Operational',
                         zone: sec.zone,
                         mps: sec.mps
                     }
