@@ -18,6 +18,8 @@ yarn-error.log*
 # Data (Bronze & Silver)
 .tmp/
 *.json
+*.osm.pbf
+archive/
 !package.json
 !package-lock.json
 !tsconfig.json
