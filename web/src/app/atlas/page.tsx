@@ -285,6 +285,7 @@ export function StationTooltip({ props }: { props: any }) {
                 </div>
             )}
             {props.is_junction && <div className={styles.tooltipBadge}>📍 Junction</div>}
+            {props.is_terminus && <div className={styles.tooltipBadge}>🏁 Terminus</div>}
             <Link href={`/station/${props.code}`} target="_blank" className={styles.tooltipHintWrapper}>
                 <div className={styles.tooltipHint}>Click to view full details ↗</div>
             </Link>
@@ -319,7 +320,7 @@ export default function AtlasPage() {
         const loadNetwork = async () => {
             setLoading(true);
             try {
-                const cacheKey = 'atlas-geojson-v15';
+                const cacheKey = 'atlas-geojson-v23';
                 let json = await getCachedData(cacheKey);
 
                 if (!json) {
@@ -391,6 +392,7 @@ export default function AtlasPage() {
                                 <p className={styles.overlayDesc}>Indian Railways Network Map</p>
                             </div>
                         </div>
+                        <div className={styles.panelBody}>
                         {loading && <div className={styles.loadingState}><div className={styles.spinner} /><span>Loading...</span></div>}
                         {error && <div className={styles.errorState}>⚠️ {error}</div>}
                         {metadata && (
@@ -425,6 +427,7 @@ export default function AtlasPage() {
                             <div className={styles.sectionTitle}>Overlays</div>
                             <LayerToggle color="#e2e8f0" label="Stations" active={layers.stations} onToggle={() => toggleLayer('stations')} isCircle />
                             <LayerToggle color="#f59e0b" label="Under Construction" active={layers.construction} onToggle={() => toggleLayer('construction')} isDashed />
+                        </div>
                         </div>
                     </>
                 )}

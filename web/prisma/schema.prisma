@@ -47,11 +47,13 @@ model Station {
   is_junction Boolean @default(false)
   is_terminus Boolean @default(false)
 
-  stops          TrainStop[]
-  track_from     TrackSegment[] @relation("TrackFrom")
-  track_to       TrackSegment[] @relation("TrackTo")
-  source_trains  Train[]        @relation("SourceStation")
-  dest_trains    Train[]        @relation("DestStation")
+  stops            TrainStop[]
+  track_from       TrackSegment[]  @relation("TrackFrom")
+  track_to         TrackSegment[]  @relation("TrackTo")
+  sections_from    TrackSection[]  @relation("SectionFrom")
+  sections_to      TrackSection[]  @relation("SectionTo")
+  source_trains    Train[]         @relation("SourceStation")
+  dest_trains      Train[]         @relation("DestStation")
 }
 
 // ─────────────────────────────────────────────
@@ -181,19 +183,24 @@ model RakeMember {
 // ─────────────────────────────────────────────
 model TrackSection {
   id                Int            @id @default(autoincrement())
-  from_node_code    String         // Junction or Terminus
-  to_node_code      String         // Junction or Terminus
+  from_node_code    String         // Junction or Terminus (station_code or OSM_*)
+  to_node_code      String         // Junction or Terminus (station_code or OSM_*)
   distance_km       Float
   mps               Int?           // Max Permissible Speed
   // Single, Double, Multi
   track_type        String?
   electrified       Boolean        @default(false)
+  // Operational, Under Construction, Proposed, etc.
+  status            String         @default("Operational")
   gauge             String         @default("BG")
   zone_code         String?
   num_stations      Int            @default(0)
-  
+
+  from_station      Station        @relation("SectionFrom", fields: [from_node_code], references: [station_code])
+  to_station        Station        @relation("SectionTo", fields: [to_node_code], references: [station_code])
+
   segments          TrackSegment[]
-  
+
   // Combined path_coordinates for easier map rendering of the whole section
   path_coordinates  Json?
 }

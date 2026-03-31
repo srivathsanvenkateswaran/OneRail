@@ -23,6 +23,9 @@ function classifyGauge(tags: any) {
     if (tags.gauge === '1676') return 'BG';
     if (tags.gauge === '1000') return 'MG';
     if (tags.gauge === '762' || tags.gauge === '610') return 'NG';
+    // 1435mm = standard gauge — used by metro/rapid transit in India, NOT Indian Railways mainline.
+    // Returning null signals the caller to skip this way entirely.
+    if (tags.gauge === '1435') return null;
     return 'BG';
 }
 
@@ -186,6 +189,7 @@ async function main() {
         const fromCode = `OSM_${fromNodeId}`;
         const toCode = `OSM_${toNodeId}`;
         const gauge = classifyGauge(el.tags);
+        if (!gauge) { skipped++; continue; } // null = standard gauge (metro) — skip
         const status = classifyStatus(el.tags);
         const trackType = classifyTrackType(el.tags);
         const electrified = isElectrified(el.tags);

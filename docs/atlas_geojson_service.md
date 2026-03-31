@@ -108,6 +108,18 @@ async function updateMapViewport(bounds) {
 }
 ```
 
+## Caching & Data Freshness
+
+To maintain high performance, the Atlas service employs caching at two levels:
+
+1.  **Edge/CDN Caching:** The API response includes a `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` header. This caches the GeoJSON at the network edge for 5 minutes.
+2.  **Client-Side Persistence:** The frontend (`AtlasPage.tsx`) uses a local IndexedDB cache via `lib/clientCache.ts`. This prevents re-downloading the ~20MB+ network graph on every page load.
+
+### Forcing a Data Refresh
+When significant changes are made to the database (e.g., fixing missing junctions, updating track geometries):
+1.  **Update the Cache Key:** Open `web/src/app/atlas/page.tsx` and increment the `cacheKey` string (e.g., `atlas-geojson-v15` → `atlas-geojson-v16`).
+2.  **Deployment:** Once deployed, the client will see the new key, bypass its local cache, and fetch the fresh data from the API.
+
 ## Error Handling & Edge Cases
 
 * **Malformatted Bounding Boxes:** If client-provided coordinate strings throw `NaN` on parse, the service logs no faults. It bypasses viewport-locking to gracefully degrade to returning the maximum dataset allowed by the `limit` variable.
