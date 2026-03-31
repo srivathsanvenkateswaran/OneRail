@@ -21,8 +21,7 @@ async function main() {
     await prisma.$executeRaw`
         UPDATE "Station"
         SET is_junction = true
-        WHERE (station_name ILIKE '% Jn'
-               OR station_name ILIKE '% Jn.'
+        WHERE (station_name ILIKE '% Jn%'
                OR station_name ILIKE '% Junction%'
                OR station_name ILIKE '% Jct%')
     `;

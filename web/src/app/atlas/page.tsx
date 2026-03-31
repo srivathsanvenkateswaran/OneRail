@@ -320,7 +320,7 @@ export default function AtlasPage() {
         const loadNetwork = async () => {
             setLoading(true);
             try {
-                const cacheKey = 'atlas-geojson-v22';
+                const cacheKey = 'atlas-geojson-v23';
                 let json = await getCachedData(cacheKey);
 
                 if (!json) {
